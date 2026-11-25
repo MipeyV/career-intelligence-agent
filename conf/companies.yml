@@ -1,0 +1,162 @@
+# Watchlist from the project brief. No board token has been guessed or verified.
+# Add a source only after reviewing the official careers page and access conditions.
+schema_version: 1
+companies:
+  - key: google
+    name: Google
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: google-deepmind
+    name: Google DeepMind
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: meta
+    name: Meta
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: microsoft
+    name: Microsoft
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: openai
+    name: OpenAI
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: anthropic
+    name: Anthropic
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: apple
+    name: Apple
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: amazon
+    name: Amazon
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: nvidia
+    name: NVIDIA
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: databricks
+    name: Databricks
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: datadog
+    name: Datadog
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: snowflake
+    name: Snowflake
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: mistral-ai
+    name: Mistral AI
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+  - key: hugging-face
+    name: Hugging Face
+    category: big-tech-ai
+    disabled_reason: Official source not yet verified
+
+  - key: squarepoint-capital
+    name: Squarepoint Capital
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: qube-research-technologies
+    name: Qube Research & Technologies
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: capital-fund-management
+    name: Capital Fund Management
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: citadel
+    name: Citadel
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: citadel-securities
+    name: Citadel Securities
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: jane-street
+    name: Jane Street
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: two-sigma
+    name: Two Sigma
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: point72
+    name: Point72
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: optiver
+    name: Optiver
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: imc-trading
+    name: IMC Trading
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: hudson-river-trading
+    name: Hudson River Trading
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+  - key: millennium
+    name: Millennium
+    category: quantitative-finance
+    disabled_reason: Official source not yet verified
+
+  - key: bnp-paribas-cib
+    name: BNP Paribas CIB
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: societe-generale
+    name: Société Générale
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: credit-agricole-cib
+    name: Crédit Agricole CIB
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: jpmorgan
+    name: JPMorgan
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: goldman-sachs
+    name: Goldman Sachs
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: morgan-stanley
+    name: Morgan Stanley
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: axa
+    name: AXA
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: axa-xl
+    name: AXA XL
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: scor
+    name: SCOR
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: swiss-re
+    name: Swiss Re
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: munich-re
+    name: Munich Re
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: allianz
+    name: Allianz
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified
+  - key: amundi
+    name: Amundi
+    category: banking-insurance-asset-management
+    disabled_reason: Official source not yet verified

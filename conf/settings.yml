@@ -1,0 +1,36 @@
+schema_version: 1
+# Relative paths are resolved against this settings file, not your working directory.
+# For personal use, copy profile.example.yml to profile.local.yml and update this path.
+profile_file: profile.example.yml
+companies_file: companies.yml
+database_path: ../data/career-intelligence.sqlite3
+
+collection:
+  connect_timeout_seconds: 5
+  read_timeout_seconds: 20
+  max_attempts: 3
+  max_response_bytes: 10485760
+  max_retry_wait_seconds: 60
+  run_deadline_seconds: 300
+  min_request_interval_seconds: 1
+  max_pages: 100
+  max_items: 10000
+
+reconciliation:
+  complete_omissions_required: 2
+  minimum_absence_hours: 24
+  depletion_fraction: 0.5
+
+filters:
+  role_aliases:
+    machine-learning-engineer: [Machine Learning Engineer, ML Engineer]
+    data-scientist: [Data Scientist, Financial Data Scientist]
+    applied-scientist: [Applied Scientist, Applied AI Engineer]
+    research-engineer: [Research Engineer]
+    software-engineer-ai: [Software Engineer AI, Software Engineer ML]
+    ml-platform: [AI Infrastructure Engineer, ML Platform Engineer]
+    forward-deployed: [Forward Deployed Engineer]
+    quantitative: [Quantitative Researcher, Quantitative Developer, Quantitative Trader]
+  location_aliases: {}
+  excluded_title_seniority: [Senior, Staff, Principal, Director, Head of]
+  comparable_pay_filter_enabled: false

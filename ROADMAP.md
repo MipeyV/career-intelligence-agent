@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Status: Phase 1 scope and dependencies approved by the user on 2026-11-25. This baseline contains planning documents only; later phases are not implicitly authorized by that approval.
+Status: Phase 1 scope and dependencies approved by the user on 2026-11-25. Milestone 1.1 is implemented on `feat/phase-1-1-bootstrap` for PR review; later milestones are not implemented. Later phases are not implicitly authorized by Phase 1 approval.
 
 ## Branches, reviews and CI/CD
 
@@ -15,6 +15,8 @@ Deliver a useful single-user CLI that collects at least one verified Greenhouse 
 Dependency order: **1.1 -> 1.2 -> 1.3 -> 1.4 -> 1.5 -> 1.6**. Each milestone is independently reviewable and has a reproducible exit check.
 
 ### 1.1: executable package and configuration contracts
+
+Implementation status: package, configuration CLI/models, examples, watchlist, lock, tests and CI workflow delivered on the dedicated branch. Local Ruff checks, 74 offline tests, source/wheel build and fresh-environment wheel verification pass on Windows/Python 3.12.14. Hosted CI results must be checked on the PR before declaring the milestone's cross-platform gate complete.
 
 Deliver:
 
@@ -111,7 +113,7 @@ Notification deduplication is not claimed complete in Phase 1: the acceptance ga
 | Question / assumption | Validation or default | Required by |
 | --- | --- | --- |
 | Approve the proposed Phase 1 dependency set and scope? | Approved by the user on 2026-11-25; record new significant dependency/scope decisions separately | Resolved |
-| Python 3.12 works on the user's environment and dependency lock | Inspection found a `python.exe` command that could not execute in this session. Resolve an available interpreter during bootstrap before installing or testing; do not assume Docker | 1.1 |
+| Python 3.12 works on the user's environment and dependency lock | Verified using uv 0.12.12 and managed CPython 3.12.14. Tool execution required access outside the sandbox; local tests use a project-local temporary directory to avoid shared Windows Temp permissions | Locally resolved; hosted CI pending |
 | Which watchlist companies expose a usable Greenhouse board? | Verify an official careers link and token; keep unsupported entries disabled | 1.2 |
 | Are intended source access and later commercial reuse permitted? | Review official source conditions; public API existence alone is insufficient | Enablement / Phase 6 |
 | Does the response represent the whole requested scope? | Check documented response, count consistency, duplicates and real payload; conservatively classify uncertainty | 1.2/1.4 |
@@ -126,6 +128,8 @@ Notification deduplication is not claimed complete in Phase 1: the acceptance ga
 These do not all block the initial package milestone. Keep unvalidated integrations disabled and unknown candidate facts explicit rather than guessing.
 
 Planning validation: the four documentation files passed local-link, UTF-8 decoding, code-fence and whitespace checks using PowerShell. All six Phase 1 milestone headings and 15 acceptance criteria are present. Python-based checks could not start because the resolved `python.exe` was inaccessible; no application tests or live-board smoke tests have run.
+
+Milestone 1.1 supersedes the initial Python limitation: the approved environment was installed with uv, and the local application checks above now pass. No live-board smoke test has run; that belongs to 1.2. No production credentials, private candidate files or runtime database are included.
 
 ## Phase 2: structured intelligence
 

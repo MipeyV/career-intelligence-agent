@@ -2,10 +2,10 @@
 
 ## Scope and workflow
 
-- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is approved but not yet implemented; later phases remain proposals.
+- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is approved; milestone 1.1 provides the package, configuration CLI and CI definition. Later milestones remain plans.
 - The user approved the Phase 1 scope and dependency set on 2026-11-25. Implement one independently testable milestone at a time; do not re-request approval for routine work or dependencies already approved within Phase 1.
 - The user authorized the initial documentation baseline to be committed and pushed directly to `main`. After that baseline, create a dedicated branch before making each increment and open a PR targeting `main`; do not push subsequent changes directly to `main`. Begin with `feat/phase-1-1-bootstrap`.
-- Introduce GitHub Actions with milestone 1.1, covering locked installation, Ruff lint/format, offline Pytest on Windows and Linux, and package-build validation. Extend CI as functionality grows; add delivery automation at Phase 4 when the release/deployment target is defined.
+- Maintain the GitHub Actions workflow introduced with milestone 1.1, covering locked installation, Ruff lint/format, offline Pytest on Windows and Linux, package-build and isolated wheel validation. Extend CI as functionality grows; add delivery automation at Phase 4 when the release/deployment target is defined.
 - Explain major architectural changes. Obtain approval before adding significant dependencies, new paid/external services, changing scope, or bringing forward later phases.
 - Keep a runnable CLI after the bootstrap milestone, and update documentation to distinguish implemented behavior from plans. Do not document imaginary successful tests or live API checks.
 - Use a modular monolith and ordinary deterministic services. Introduce LangChain and LangGraph at their planned boundaries. Do not add multiple autonomous agents, queues, vector databases, or SaaS infrastructure without a demonstrated requirement and approval.
@@ -39,6 +39,6 @@
 - Inject HTTP transport, clock and sleeper for deterministic offline tests. No real network, production credentials or paid model calls in default tests/CI.
 - Use temporary file-backed SQLite databases for restart/transaction tests. Protect user data; never reset or delete a real database as a routine test step.
 - Add meaningful tests for the milestone's invariants: normalization unknowns, identity collisions, revisions, complete/partial/failure reconciliation, filtering uncertainty and replay idempotency. Later add mocked LLM schemas/evidence, graph routing, budgets and delivery retry tests.
-- After tooling exists, run `python -m ruff check .`, `python -m ruff format --check .`, and `python -m pytest` through the documented locked environment. Before tooling exists, report checks as unavailable rather than claiming they passed.
+- Use uv 0.12.12 with `uv sync --locked --dev`. Run `uv run --locked --offline python -m ruff check .`, `uv run --locked --offline python -m ruff format --check .`, and `uv run --locked --offline python -m pytest`. Also run `uv build --no-build-isolation --offline` and `uv run --locked --offline python scripts/check_distribution.py` for packaging changes. On this Windows machine, use a disposable `--basetemp .pytest_cache/<run-name>` if the default shared temporary folder is inaccessible.
 - Keep source contracts linked to official documentation. Verify board tokens and live access separately, with explicit opt-in smoke checks; never silently fall back to scraping.
 - Record checks run, their outcomes, remaining assumptions and material limitations at each milestone. Do not broaden work beyond the agreed scope to hide an unresolved dependency or design question.
