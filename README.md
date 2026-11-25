@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Planning baseline approved; implementation pending.** Repository inspection on 2026-11-25 found an empty repository with no commits, source code, dependency manifest, tests, or existing project instructions. The user approved the Phase 1 plan and dependency set, and authorized publishing this initial documentation baseline on `main`. There is no executable application yet, and no dependencies have been installed.
+**Milestone 1.1 implemented.** The package, offline configuration-validation CLI, synthetic profile, 39-company watchlist, dependency lock, tests, and GitHub Actions workflow are present. Collection, storage and matching are not implemented yet. All company sources remain disabled until their official endpoints and access conditions are verified in milestone 1.2.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -22,9 +22,32 @@ Phase 1 is a deterministic, single-user Python CLI:
 
 No LLM, hosted service, API key, or external notification credentials will be needed for Phase 1. Terminal results are the initial local reporting surface. Telegram, email, dashboard delivery, automated scheduling, semantic matching, and application tracking belong to later milestones.
 
-## Proposed dependency set
+## Installation and commands
 
-Target Python 3.12 initially, with a locked and tested dependency set chosen during milestone 1.1.
+Use **Python 3.12** and **uv 0.12.12**. The first supported Python range is deliberately limited to 3.12 until additional versions are tested. Install uv through the [official installation instructions](https://docs.astral.sh/uv/getting-started/installation/). The exact uv version is required by `pyproject.toml`; `.python-version` selects Python 3.12.
+
+From the repository root (PowerShell or a POSIX shell):
+
+```text
+uv sync --locked --dev
+uv run --locked --offline career-intelligence --help
+uv run --locked --offline career-intelligence --version
+uv run --locked --offline career-intelligence config validate --config conf/settings.yml
+```
+
+Initial synchronization downloads dependencies and may provision Python if needed. Once installed, the CLI works offline and needs no API keys. Alternatively use `uv run --locked --offline python -m career_intelligence ...` with the same arguments.
+
+Successful validation writes one JSON record to stdout:
+
+```json
+{"event": "configuration_valid", "schema_version": 1, "company_count": 39, "enabled_source_count": 0}
+```
+
+Validation errors return code `2` and a JSON diagnostic on stderr, without private input values or YAML excerpts. Invalid command syntax also returns `2` with argparse usage text. Validation does not create the database or connect to sources.
+
+## Dependencies
+
+Runtime and development versions are pinned with hashes in `uv.lock`. Use `uv sync --locked` rather than resolving versions on each installation.
 
 | Purpose | Proposal |
 | --- | --- |
@@ -34,37 +57,46 @@ Target Python 3.12 initially, with a locked and tested dependency set chosen dur
 | Persistence | SQLAlchemy with Python's SQLite driver |
 | CLI, retry logic, text extraction, logging | Python standard library |
 | Development checks | Pytest and Ruff |
+| Package build backend | uv_build, matching the pinned uv toolchain |
 
 The user approved this Phase 1 dependency set on 2026-11-25. No Typer, retry framework, vector database, queue, web server, or migration framework is necessary for the first milestone. LangChain provider adapters are planned for Phase 2 and LangGraph orchestration for Phase 3, with their dependencies reviewed at those boundaries.
 
 ## Configuration and privacy
 
-The implementation will introduce these files; they do not exist yet:
+The repository includes:
 
 - `conf/profile.example.yml`: synthetic candidate data documenting the profile contract.
-- `conf/profile.local.yml`: ignored, private candidate profile, optionally populated from the supplied brief with the user's agreement.
+- `conf/profile.local.yml`: intended ignored path for your private copy; not included in the repository.
 - `conf/companies.yml`: extensible company watchlist, source identifiers, and enabled flags. Companies without validated connectors remain disabled with a reason.
 - `conf/settings.yml`: database path, collection limits, filter policy, and source reconciliation policy.
-- `conf/scoring.yml`: introduced in Phase 2 with versioned dimension weights.
+- `conf/scoring.yml`: planned for Phase 2; not present yet.
 - `.env.example`: variable names and placeholders only; credentials are read from the environment.
 
-Profile configuration will support education and graduation dates, availability, employment episodes and apprenticeship status, skills and evidence, target roles, ordered locations, compensation target and fallback, and explicitly known languages and work rights. An unknown authorization or language level stays unknown. No personal details belong in application logic or committed test fixtures.
+Profile configuration supports education and graduation dates, availability, employment episodes and apprenticeship status, skills and evidence, projects, target roles, ordered locations, compensation target and fallback, and explicitly known languages and work rights. Omitted candidate fact lists remain null; an explicitly empty list remains empty. No personal details belong in application logic or committed test fixtures.
 
-The supplied October 2027 availability and approximately EUR 90,000 annual total-compensation objective are user configuration requirements, not hardcoded rules. A graduation year alone must not become an invented exact graduation date. The fallback compensation threshold requires a user choice; unknown salary never causes automatic rejection.
+Copy `conf/profile.example.yml` to `conf/profile.local.yml`, replace the synthetic facts, then set `profile_file: profile.local.yml` in your local settings copy (for example `conf/settings.local.yml`, also ignored). Relative profile, company and database paths are resolved against the settings file's directory, independent of the working directory. `.env.example` documents future variables only: this milestone does not read `.env` files.
 
-## Intended commands
+Dates accept `YYYY`, `YYYY-MM` and `YYYY-MM-DD` text and preserve precision; quote a year such as `"2028"` so YAML does not treat it as an integer. Unknown facts use null. The loader rejects unknown fields, duplicate keys, aliases, custom YAML tags, invalid dates/limits and files larger than 1 MiB. It accepts UTF-8 with or without a byte-order mark.
 
-The following illustrate the proposed interface and **are not runnable yet**:
+Companies can be added without a connector, provided `disabled_reason` explains why they are not collected. A configured enabled source requires a unique key, provider `greenhouse`, a board token and an attributable HTTPS careers URL; validate access before enabling one. Other provider names can be documented as disabled future integrations. Configuring a source does not collect it in this milestone.
+
+## Verification
+
+Run the same checks used by CI:
 
 ```text
-career-intelligence config validate --config conf/settings.yml
-career-intelligence collect --config conf/settings.yml
-career-intelligence collect --config conf/settings.yml --fixture tests/fixtures/greenhouse/initial.json
-career-intelligence jobs list --decision keep,review --format table
-career-intelligence changes list --since-run <run-id> --format json
+uv run --locked --offline python -m ruff check .
+uv run --locked --offline python -m ruff format --check .
+uv run --locked --offline python -m pytest
+uv build --no-build-isolation --offline
+uv run --locked --offline python scripts/check_distribution.py
 ```
 
-The collection command will report source successes, failures, item counts, revision counts, and duration. Normal output goes to stdout; structured operational logs go to stderr. A live-source smoke test will be optional and separate from offline CI.
+Tests use synthetic data and temporary files, reject attempted network connections, and cover configuration validation, date precision, unknown facts, source identity, output redaction, CLI exit codes, Git ignore rules and imports without application-state creation. The distribution check installs the built wheel and locked runtime dependencies in a fresh temporary environment and exercises it outside the repository. Keep only the current wheel in `dist/` for that check.
+
+If the shared Windows temporary folder has restrictive permissions, run Pytest with `--basetemp .pytest_cache/local-run` using a disposable project-local directory. This was needed for local verification on the development machine.
+
+Future commands for collection, job listing and change history arrive in milestones 1.2-1.5. The CLI currently exposes only help, version and `config validate`.
 
 ## Long-term scope
 
@@ -72,8 +104,8 @@ The roadmap retains the full product direction: additional ATS and authorized di
 
 ## Contribution and CI/CD workflow
 
-This initial documentation baseline is the authorized direct push to `main`. Every subsequent increment uses a dedicated branch and a pull request targeting `main`, starting with `feat/phase-1-1-bootstrap`. Keep one independently testable milestone per PR, and describe the resulting behavior, checks run, and remaining limitations.
+The initial documentation baseline was the authorized direct push to `main`. Every subsequent increment uses a dedicated branch and a pull request targeting `main`, starting with `feat/phase-1-1-bootstrap`. Keep one independently testable milestone per PR, and describe the resulting behavior, checks run, and remaining limitations.
 
-Introduce GitHub Actions with the first executable milestone: locked installation, Ruff lint/format checks, Pytest on Windows and Linux, and package-build validation. Consolidate and extend these checks as functionality grows. Delivery automation follows in Phase 4 with Docker and a separately chosen release/deployment target; no deployment pipeline exists yet.
+`.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-The next implementation step is milestone **1.1** on its own branch. The Phase 1 scope and dependencies are approved. This baseline contains documentation only.
+Delivery automation follows in Phase 4 with Docker and a separately chosen release/deployment target; no deployment pipeline exists yet. The next implementation milestone is **1.2: Greenhouse collection and normalization**, on a separate branch after review of 1.1.

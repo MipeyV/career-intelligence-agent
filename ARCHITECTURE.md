@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Status: Phase 1 architecture and dependency set approved by the user on 2026-11-25; implementation pending. Later phases remain roadmap proposals.
+Status: Phase 1 architecture and dependency set approved by the user on 2026-11-25. Milestone 1.1 implements the package, configuration contracts, validation CLI and CI definition. Collection, storage and later phases below remain design targets.
 
 ## 1. Design and scope
 
@@ -50,6 +50,8 @@ Future modules such as `llm/`, `eligibility/`, `matching/`, `notifications/`, an
 ### Configuration
 
 Separate candidate facts and preferences from source and runtime settings. Validate types, nonnegative limits, supported providers, date precision, unique source keys, and URLs before collection begins. Resolve relative paths against the settings file directory. Reject unknown configuration keys to catch typos. Never interpolate secrets into logged configuration.
+
+Implemented in 1.1: a bounded safe YAML loader rejects aliases, duplicate/non-string keys and custom tags; Pydantic validates settings, linked profile and watchlist files. ISO date text retains year/month/day precision. CLI diagnostics omit input values and raw YAML. Validation performs no network calls or database creation. The build uses `uv_build` with a pinned uv toolchain and hashed dependency lock; Python 3.12 is the initially tested compatibility range.
 
 Source entries contain `company_key`, display name, provider, board token, enabled flag, and optional verified official careers URL. Preserve the requested company groups in the initial watchlist, but do not guess board tokens or claim every company uses Greenhouse. Discovery beyond the watchlist becomes a separate authorized connector in a later phase.
 

@@ -1,0 +1,38 @@
+# Entirely synthetic. Copy to profile.local.yml for your verified personal facts.
+# Quote years to preserve date precision. YYYY-MM and YYYY-MM-DD are also supported.
+schema_version: 1
+education:
+  - institution: Example Institute of Technology
+    degree: MSc
+    field: Computer Science
+    expected_graduation: "2028"
+    evidence: []
+experience:
+  - employer: Example Analytics
+    role: Software Engineering Apprentice
+    start: "2026-09"
+    end: null
+    kind: apprenticeship
+    counts_as_professional_experience: null
+    evidence: []
+skills:
+  - name: Python
+    evidence: [Synthetic course project]
+languages: null
+work_authorizations: null
+projects:
+  - name: Example forecasting project
+    description: Synthetic time-series study for documenting the profile format.
+    skills: [Python, Statistics]
+    evidence: []
+preferences:
+  availability: "2028-10"
+  target_roles: [Machine Learning Engineer, Data Scientist]
+  target_seniority: [Graduate, Junior]
+  maximum_experience_years: 3
+  locations: [Example City, Remote]
+  compensation:
+    currency: EUR
+    target_annual_total: 100000
+    fallback_annual_total: null
+  objectives: [Develop technical skills, Learn to build products]
