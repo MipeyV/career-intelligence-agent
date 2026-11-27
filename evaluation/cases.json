@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "dataset_version": "synthetic-v1",
+  "annotation_provenance": "Cases and labels curated by the coding assistant. Independent human review is pending.",
+  "profile": {
+    "schema_version": 1,
+    "preferences": {
+      "target_roles": ["Machine Learning Engineer", "Data Scientist", "Research Engineer", "Quantitative Developer"],
+      "target_seniority": ["Junior", "Graduate"],
+      "locations": ["Example City", "Other City", "Remote"],
+      "compensation": {"currency": "EUR", "target_annual_total": 100000}
+    }
+  },
+  "policy": {
+    "role_aliases": {"machine-learning-engineer": ["ML Engineer"]},
+    "excluded_title_seniority": ["Senior", "Staff", "Principal"]
+  },
+  "keyword_baseline": ["machine learning", "data scientist", "research engineer", "quantitative developer", "python"],
+  "cases": [
+    {"id": "r1", "relevance": "relevant", "expected_decision": "keep", "rationale": "Explicit junior role in the first preferred location.", "posting": {"title": "Junior Machine Learning Engineer", "location": "Example City", "description": "Build and test machine learning services. Graduate applicants welcome."}},
+    {"id": "r2", "relevance": "relevant", "expected_decision": "keep", "rationale": "Missing junior label and undisclosed salary should preserve a clear target role.", "posting": {"title": "Data Scientist", "location": "Example City", "description": "Develop predictive models with Python. Salary is not disclosed."}},
+    {"id": "r3", "relevance": "relevant", "expected_decision": "keep", "rationale": "Configured ML abbreviation and a secondary preferred location.", "posting": {"title": "ML Engineer", "location": "Other City", "description": "Maintain model training pipelines and automated tests."}},
+    {"id": "r4", "relevance": "relevant", "expected_decision": "keep", "rationale": "Target research role in a configured remote location.", "posting": {"title": "Research Engineer", "location": "Remote", "description": "Reproduce machine learning experiments and improve inference."}},
+    {"id": "r5", "relevance": "relevant", "expected_decision": "keep", "rationale": "Configured quantitative development role.", "posting": {"title": "Quantitative Developer", "location": "Other City", "description": "Implement Python research tools and numerical algorithms."}},
+    {"id": "r6", "relevance": "relevant", "expected_decision": "keep", "rationale": "A prefixed title still contains the complete target role.", "posting": {"title": "Applied Machine Learning Engineer", "location": "Example City", "description": "Ship reliable forecasting services and monitor model quality."}},
+    {"id": "r7", "relevance": "relevant", "expected_decision": "review", "rationale": "A relevant role with an unknown location requires review.", "posting": {"title": "Data Scientist", "description": "Analyze experimental results with Python and statistics."}},
+    {"id": "r8", "relevance": "relevant", "expected_decision": "review", "rationale": "Target role with work-rights requirements that need interpretation.", "posting": {"title": "Machine Learning Engineer", "location": "Example City", "description": "Build model-serving systems. Work authorization is required.", "work_authorization": "Must have local work authorization"}},
+    {"id": "i1", "relevance": "irrelevant", "expected_decision": "exclude", "rationale": "Explicit excluded senior title.", "posting": {"title": "Senior Machine Learning Engineer", "location": "Example City", "description": "Lead architecture across teams with ten years of industry experience."}},
+    {"id": "i2", "relevance": "irrelevant", "expected_decision": "exclude", "rationale": "Explicit excluded staff title.", "posting": {"title": "Staff Data Scientist", "location": "Example City", "description": "Own technical strategy across business units."}},
+    {"id": "i3", "relevance": "irrelevant", "expected_decision": "review", "rationale": "Sales duties are irrelevant, but the deterministic filter preserves uncertain titles.", "posting": {"title": "Sales Engineer", "location": "Example City", "description": "Sell machine learning products and demonstrate Python examples to prospective buyers."}},
+    {"id": "i4", "relevance": "irrelevant", "expected_decision": "review", "rationale": "Accounting duties are irrelevant, while unknown titles remain reviewable.", "posting": {"title": "Accountant", "location": "Example City", "description": "Prepare tax returns and reconcile invoices."}},
+    {"id": "a1", "relevance": "ambiguous", "expected_decision": "review", "rationale": "Unclear job title and responsibility depth.", "posting": {"title": "AI Builder", "location": "Example City", "description": "Work with Python and prototypes for internal users. Experience requirements are unspecified."}},
+    {"id": "a2", "relevance": "ambiguous", "expected_decision": "review", "rationale": "Generic title could represent several different functions.", "posting": {"title": "Associate", "location": "Other City", "description": "Support data science teams and coordinate delivery."}},
+    {"id": "a3", "relevance": "ambiguous", "expected_decision": "review", "rationale": "Target title with unclear geographic eligibility and experience interpretation.", "posting": {"title": "Machine Learning Engineer", "location": "Location dependent", "description": "Build models. Professional or academic experience may be considered.", "required_experience": "Experience or equivalent academic work"}},
+    {"id": "a4", "relevance": "ambiguous", "expected_decision": "review", "rationale": "A mixed junior/senior opening cannot safely be rejected on its title alone.", "posting": {"title": "Junior / Senior Machine Learning Engineer", "location": "Example City", "description": "Several levels may be hired depending on team needs."}}
+  ]
+}

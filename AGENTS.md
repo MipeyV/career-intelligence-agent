@@ -2,7 +2,7 @@
 
 ## Scope and workflow
 
-- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is approved. Milestones 1.1-1.5 provide configuration, collection, storage, lifecycle tracking and deterministic filtering. Later milestones remain plans.
+- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is approved. Milestones 1.1-1.6 provide the deterministic MVP, recovery commands and evaluation. Later phases remain plans.
 - The user approved the Phase 1 scope and dependency set on 2026-11-25. Implement one independently testable milestone at a time; do not re-request approval for routine work or dependencies already approved within Phase 1.
 - The user authorized the initial documentation baseline to be committed and pushed directly to `main`. After that baseline, create a dedicated branch before making each increment and open a PR targeting `main`; do not push subsequent changes directly to `main`. Begin with `feat/phase-1-1-bootstrap`.
 - Maintain the GitHub Actions workflow introduced with milestone 1.1, covering locked installation, Ruff lint/format, offline Pytest on Windows and Linux, package-build and isolated wheel validation. Extend CI as functionality grows; add delivery automation at Phase 4 when the release/deployment target is defined.
@@ -42,3 +42,4 @@
 - Use uv 0.12.12 with `uv sync --locked --dev`. Run `uv run --locked --offline python -m ruff check .`, `uv run --locked --offline python -m ruff format --check .`, and `uv run --locked --offline python -m pytest`. Also run `uv build --no-build-isolation --offline` and `uv run --locked --offline python scripts/check_distribution.py` for packaging changes. On this Windows machine, use a disposable `--basetemp .pytest_cache/<run-name>` if the default shared temporary folder is inaccessible.
 - Keep source contracts linked to official documentation. Verify board tokens and live access separately, with explicit opt-in smoke checks; never silently fall back to scraping.
 - Record checks run, their outcomes, remaining assumptions and material limitations at each milestone. Do not broaden work beyond the agreed scope to hide an unresolved dependency or design question.
+- For evaluation or operational changes, run `uv run --locked --offline python scripts/evaluate.py` and the backup/restore integration tests. Keep synthetic and real-source cases distinguishable. Report annotation provenance and pending human review. Avoid tuning labels to obtain a better score.

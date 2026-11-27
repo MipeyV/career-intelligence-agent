@@ -1,0 +1,612 @@
+{
+  "report_version": 1,
+  "dataset_version": "synthetic-v1",
+  "dataset_sha256": "1d2b1f9b23e98af7970ac39120c66a0ca1634ab282215614ef7dcb78ed44035d",
+  "annotation_provenance": "Cases and labels curated by the coding assistant. Independent human review is pending.",
+  "configuration_hash": "71b152330429565a4f97f168bf236dabbc5b3af67b96f2e65d5b7c30d17e8788",
+  "environment": {
+    "python": "3.12.14",
+    "system": "Windows",
+    "release": "11",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 198 Stepping 2, GenuineIntel"
+  },
+  "case_count": 16,
+  "labels": {
+    "relevant": 8,
+    "irrelevant": 4,
+    "ambiguous": 4
+  },
+  "discovery_retained": {
+    "confusion": {
+      "tp": 8,
+      "fp": 2,
+      "tn": 2,
+      "fn": 0
+    },
+    "precision": 0.8,
+    "recall": 1.0,
+    "false_negative_rate": 0.0,
+    "ambiguous_retained": 4,
+    "ambiguous_total": 4
+  },
+  "strict_keep": {
+    "confusion": {
+      "tp": 6,
+      "fp": 0,
+      "tn": 4,
+      "fn": 2
+    },
+    "precision": 1.0,
+    "recall": 0.75,
+    "false_negative_rate": 0.25,
+    "ambiguous_retained": 0,
+    "ambiguous_total": 4
+  },
+  "keyword_baseline": {
+    "confusion": {
+      "tp": 7,
+      "fp": 3,
+      "tn": 1,
+      "fn": 1
+    },
+    "precision": 0.7,
+    "recall": 0.875,
+    "false_negative_rate": 0.125,
+    "ambiguous_retained": 3,
+    "ambiguous_total": 4
+  },
+  "decision_agreement": 1.0,
+  "repeat_consistency": 1.0,
+  "evidence_grounding": {
+    "matching_string_spans": 36,
+    "string_spans": 36,
+    "rate": 1.0
+  },
+  "latency_ms": {
+    "median": 0.06745010614395142,
+    "maximum": 0.21270010620355606
+  },
+  "llm_calls": 0,
+  "llm_cost": {
+    "amount": 0,
+    "currency": "EUR"
+  },
+  "eligibility_accuracy": null,
+  "hybrid_comparison": null,
+  "workload": {
+    "normalized_items": 16,
+    "peak_snapshot_items": 16,
+    "normalization_included": false,
+    "duration_ms": 91.45099995657802,
+    "initial_change_events": 16,
+    "replayed_change_events": 0,
+    "duplicate_event_rate": 0.0,
+    "total_change_events": 16,
+    "failed_source_status": "failed",
+    "jobs_after_failure": 16,
+    "filter_counts": {
+      "keep": 6,
+      "review": 8,
+      "exclude": 2
+    },
+    "backup_restore_equal": true
+  },
+  "cases": [
+    {
+      "id": "r1",
+      "relevance": "relevant",
+      "expected_decision": "keep",
+      "decision": "keep",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Machine Learning Engineer",
+          "profile_field": "preferences.target_roles.0",
+          "preference": "Machine Learning Engineer"
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "relevance": "relevant",
+      "expected_decision": "keep",
+      "decision": "keep",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Data Scientist",
+          "profile_field": "preferences.target_roles.1",
+          "preference": "Data Scientist"
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "r3",
+      "relevance": "relevant",
+      "expected_decision": "keep",
+      "decision": "keep",
+      "keyword_retained": false,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "ML Engineer",
+          "profile_field": "preferences.target_roles.0",
+          "preference": "Machine Learning Engineer"
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Other City",
+          "profile_field": "preferences.locations.1",
+          "preference": "Other City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "r4",
+      "relevance": "relevant",
+      "expected_decision": "keep",
+      "decision": "keep",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Research Engineer",
+          "profile_field": "preferences.target_roles.2",
+          "preference": "Research Engineer"
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Remote",
+          "profile_field": "preferences.locations.2",
+          "preference": "Remote"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "r5",
+      "relevance": "relevant",
+      "expected_decision": "keep",
+      "decision": "keep",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Quantitative Developer",
+          "profile_field": "preferences.target_roles.3",
+          "preference": "Quantitative Developer"
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Other City",
+          "profile_field": "preferences.locations.1",
+          "preference": "Other City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "r6",
+      "relevance": "relevant",
+      "expected_decision": "keep",
+      "decision": "keep",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Machine Learning Engineer",
+          "profile_field": "preferences.target_roles.0",
+          "preference": "Machine Learning Engineer"
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "r7",
+      "relevance": "relevant",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Data Scientist",
+          "profile_field": "preferences.target_roles.1",
+          "preference": "Data Scientist"
+        },
+        {
+          "code": "location_uncertain",
+          "field": "location",
+          "evidence": null,
+          "profile_field": null,
+          "preference": null
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "r8",
+      "relevance": "relevant",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Machine Learning Engineer",
+          "profile_field": "preferences.target_roles.0",
+          "preference": "Machine Learning Engineer"
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "work_authorization_requires_review",
+          "field": "work_authorization",
+          "evidence": "Must have local work authorization",
+          "profile_field": "work_authorizations",
+          "preference": null
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "i1",
+      "relevance": "irrelevant",
+      "expected_decision": "exclude",
+      "decision": "exclude",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Machine Learning Engineer",
+          "profile_field": "preferences.target_roles.0",
+          "preference": "Machine Learning Engineer"
+        },
+        {
+          "code": "seniority_excluded",
+          "field": "title",
+          "evidence": "Senior",
+          "profile_field": "preferences.target_seniority",
+          "preference": null
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "i2",
+      "relevance": "irrelevant",
+      "expected_decision": "exclude",
+      "decision": "exclude",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Data Scientist",
+          "profile_field": "preferences.target_roles.1",
+          "preference": "Data Scientist"
+        },
+        {
+          "code": "seniority_excluded",
+          "field": "title",
+          "evidence": "Staff",
+          "profile_field": "preferences.target_seniority",
+          "preference": null
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "i3",
+      "relevance": "irrelevant",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_uncertain",
+          "field": "title",
+          "evidence": "Sales Engineer",
+          "profile_field": null,
+          "preference": null
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "i4",
+      "relevance": "irrelevant",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": false,
+      "reasons": [
+        {
+          "code": "role_uncertain",
+          "field": "title",
+          "evidence": "Accountant",
+          "profile_field": null,
+          "preference": null
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "a1",
+      "relevance": "ambiguous",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_uncertain",
+          "field": "title",
+          "evidence": "AI Builder",
+          "profile_field": null,
+          "preference": null
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "a2",
+      "relevance": "ambiguous",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": false,
+      "reasons": [
+        {
+          "code": "role_uncertain",
+          "field": "title",
+          "evidence": "Associate",
+          "profile_field": null,
+          "preference": null
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Other City",
+          "profile_field": "preferences.locations.1",
+          "preference": "Other City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "a3",
+      "relevance": "ambiguous",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Machine Learning Engineer",
+          "profile_field": "preferences.target_roles.0",
+          "preference": "Machine Learning Engineer"
+        },
+        {
+          "code": "location_uncertain",
+          "field": "location",
+          "evidence": "Location dependent",
+          "profile_field": null,
+          "preference": null
+        },
+        {
+          "code": "experience_requires_review",
+          "field": "required_experience",
+          "evidence": "Experience or equivalent academic work",
+          "profile_field": "experience",
+          "preference": null
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    },
+    {
+      "id": "a4",
+      "relevance": "ambiguous",
+      "expected_decision": "review",
+      "decision": "review",
+      "keyword_retained": true,
+      "reasons": [
+        {
+          "code": "role_match",
+          "field": "title",
+          "evidence": "Machine Learning Engineer",
+          "profile_field": "preferences.target_roles.0",
+          "preference": "Machine Learning Engineer"
+        },
+        {
+          "code": "seniority_ambiguous",
+          "field": "title",
+          "evidence": "Senior",
+          "profile_field": "preferences.target_seniority",
+          "preference": null
+        },
+        {
+          "code": "location_match",
+          "field": "location",
+          "evidence": "Example City",
+          "profile_field": "preferences.locations.0",
+          "preference": "Example City"
+        },
+        {
+          "code": "compensation_filter_disabled",
+          "field": "compensation",
+          "evidence": null,
+          "profile_field": "preferences.compensation",
+          "preference": null
+        }
+      ]
+    }
+  ]
+}

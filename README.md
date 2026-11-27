@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Milestone 1.5 implemented.** Persistent collection records configurable discovery decisions alongside job history. Jobs and changes can be shown as JSON or terminal tables. Stored jobs can be refiltered after preference changes. The default watchlist contains 39 companies with live collection disabled.
+**Milestone 1.6 implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -111,7 +111,19 @@ The job list contains stable internal IDs, first/last observation times, revisio
 
 Each source commits in its own transaction. A source storage failure rolls back its observations and is recorded separately while other sources continue. Storage errors exit with `1`. A writer lock spans collection and persistence. Another writer fails with a diagnostic, and the operating system releases the lock after a process exits. Keep the persistent lock sidecar beside its database.
 
-Back up a local database after collection has exited using a normal file copy. Keep private databases and backups under the ignored `data/` directory. An unsupported or unrecognized schema is refused. Read-only listing requires an existing initialized database. Retention and purge controls are planned for operational handoff in milestone 1.6.
+Keep private databases and backups under the ignored `data/` directory. An unsupported or unrecognized schema is refused. Read-only listing requires an existing initialized database. Phase 1 retains all source evidence and history until the operator archives the database.
+
+## Backup, restore and evaluation
+
+```text
+uv run --locked --offline career-intelligence db backup --config conf/settings.yml --output data/backups/snapshot.sqlite3
+uv run --locked --offline career-intelligence db restore --backup data/backups/snapshot.sqlite3 --destination data/recovered.sqlite3
+uv run --locked --offline python scripts/evaluate.py
+```
+
+Backup and restore validate database integrity and foreign keys, then publish to a new destination. Existing output files are refused. Atomic publication requires a filesystem with hard-link support. See the [operating guide](docs/OPERATIONS.md) for settings, source failures, disposable replay, backup checks, restoration and retention.
+
+The [synthetic benchmark](evaluation/README.md) contains 16 curated descriptions and a keyword baseline. Its committed report records measured quality, latency, replay outcomes and backup/restore equality. Ambiguous cases have a separate accounting. The offline end-to-end test exercises API transport, normalization, storage, lifecycle, filtering, CLI and restore with controlled responses.
 
 ## Inspect changes and availability
 
@@ -176,4 +188,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.6, end-to-end evaluation and operational handoff**.
+Phase 1's deterministic implementation milestones are complete. Independent annotation review and a broader real-source held-out benchmark remain pending. Phase 2 introduces structured intelligence after dependency/provider review. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.
