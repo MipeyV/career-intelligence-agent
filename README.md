@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Phase 1 merged; milestone 2.1a implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. The first structured-extraction increment validates offline response fixtures against immutable job revisions. No live model or new dependency is enabled. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
+**Phase 1 and 2.1a merged; 2.1b implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. Structured extraction supports offline response fixtures and an optional local Ollama adapter, tested with simulated HTTP responses. No model is configured by default and no live inference quality has been measured. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -59,7 +59,7 @@ Runtime and development versions are pinned with hashes in `uv.lock`. Use `uv sy
 | Development checks | Pytest and Ruff |
 | Package build backend | uv_build, matching the pinned uv toolchain |
 
-The user approved this Phase 1 dependency set on 2026-11-25. No Typer, retry framework, vector database, queue, web server, or migration framework is necessary for the first milestone. LangChain provider adapters are planned for Phase 2 and LangGraph orchestration for Phase 3, with their dependencies reviewed at those boundaries.
+The user approved the Phase 1 dependency set on 2026-11-25 and the optional local Ollama dependency set on 2026-11-27. `uv sync --locked --dev --extra ollama` installs pinned LangChain Core/Ollama integrations and their locked transitive dependencies. The default installation stays independent of those packages. See the [dependency review](docs/OLLAMA-DEPENDENCIES.md). LangGraph remains planned for Phase 3.
 
 ## Offline structured-extraction contract
 
@@ -70,6 +70,8 @@ uv run --locked --offline career-intelligence jobs extract --config conf/setting
 ```
 
 Every extracted fact needs an exact quoted span from the named posting field. Unknowns stay null; explicit empty collections require evidence. Invalid output is rejected in full, and extraction never modifies collected facts, filter decisions or candidate data. The command only replays a local response, with no model calls. See [the extraction guide](docs/EXTRACTION.md) for the disposable demonstration, schema, limits, failure statuses and remaining provider work.
+
+For explicitly configured local inference, install the optional extra, set `ollama.model` in local settings, and replace the fixture flag with `--ollama`. Run with `uv run --locked --offline --extra ollama career-intelligence jobs extract --config conf/demo.local.yml --job-id JOB_ID --ollama`. The [local-provider guide](docs/EXTRACTION.md#optional-local-ollama-21b) describes the trusted loopback server, cloud-disabled daemon, supported model requirements, resource bounds and opt-in live checks. No model is downloaded automatically and candidate profiles are excluded from requests.
 
 ## Configuration and privacy
 
@@ -198,4 +200,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Phase 1's deterministic implementation milestones are complete and merged. Independent annotation review and a broader real-source held-out benchmark remain pending. Phase 2.1a implements the extraction contract and offline response validation; live model integration in 2.1b still requires dependency/provider review. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.
+Phase 1 and Phase 2.1a are merged. Phase 2.1b implements the approved optional Ollama adapter; actual model/hardware compatibility, live extraction quality, independent annotation review and a broader real-source held-out benchmark remain pending. Eligibility and matching follow in later Phase 2 milestones. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.

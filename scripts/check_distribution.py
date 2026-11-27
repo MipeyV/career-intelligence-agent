@@ -1,5 +1,6 @@
 """Install the built wheel with locked runtime requirements, then validate it outside the repo."""
 
+import argparse
 import json
 import os
 import subprocess
@@ -17,6 +18,9 @@ def run(*args: str, cwd: Path | None = None, env: dict[str, str] | None = None) 
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--extra", choices=["ollama"])
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     wheels = list((root / "dist").glob("*.whl"))
     if len(wheels) != 1:
@@ -40,6 +44,7 @@ def main() -> None:
             "--no-dev",
             "--no-install-project",
             "--offline",
+            *(["--extra", args.extra] if args.extra else []),
             cwd=root,
             env=install_env,
         )
@@ -87,6 +92,15 @@ def main() -> None:
             env=env,
         )
         assert "--response-fixture" in extraction_help
+        assert "--ollama" in extraction_help
+        dependency_check = (
+            "import importlib.util; from importlib.metadata import distribution; "
+            "assert any('langchain-ollama' in item for item in "
+            "distribution('career-intelligence').requires); "
+            "assert (importlib.util.find_spec('langchain_ollama') is not None) "
+            f"== {bool(args.extra)!r}"
+        )
+        run(str(python), "-c", dependency_check, cwd=directory, env=env)
     print("Built wheel installs and validates configuration outside the repository.")
 
 
