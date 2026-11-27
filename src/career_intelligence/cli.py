@@ -11,10 +11,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from career_intelligence import __version__
 from career_intelligence.backup import copy_database
 from career_intelligence.config import ConfigurationError, load_configuration
+from career_intelligence.extraction import FixtureProvider, extract_revision
 from career_intelligence.filtering import configuration_hash
 from career_intelligence.presentation import change_table, job_table
 from career_intelligence.preview import preview
-from career_intelligence.storage import StorageError, Store, list_changes, list_jobs
+from career_intelligence.storage import StorageError, Store, get_revision, list_changes, list_jobs
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -52,6 +53,13 @@ def main(argv: list[str] | None = None) -> int:
         "refilter", help="Evaluate stored jobs with current preferences"
     )
     refilter_parser.add_argument("--config", type=Path, required=True)
+    extraction_parser = jobs_commands.add_parser(
+        "extract", help="Validate a response fixture against a stored job revision (offline)"
+    )
+    extraction_parser.add_argument("--config", type=Path, required=True)
+    extraction_parser.add_argument("--job-id", required=True)
+    extraction_parser.add_argument("--revision", type=int)
+    extraction_parser.add_argument("--response-fixture", type=Path, required=True)
     changes_parser = commands.add_parser("changes", help="Inspect durable change events")
     changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
     changes_list = changes_commands.add_parser("list", help="List change events as JSON")
@@ -86,6 +94,26 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"event": "database_restored", **restored}))
             return 0
         loaded = load_configuration(args.config)
+        if args.command == "jobs" and args.jobs_command == "extract":
+            revision = get_revision(
+                loaded.settings.database_path, args.job_id, number=args.revision
+            )
+            limits = loaded.settings.extraction
+            result = asyncio.run(
+                extract_revision(
+                    revision,
+                    FixtureProvider(args.response_fixture, limits.max_output_bytes),
+                    provider_name="fixture",
+                    limits=limits,
+                )
+            )
+            print(result.model_dump_json())
+            if result.status != "complete":
+                print(
+                    json.dumps({"event": "extraction_failed", "status": result.status}),
+                    file=sys.stderr,
+                )
+            return 0 if result.status == "complete" else 1
         if args.command == "db":
             backup = copy_database(loaded.settings.database_path, args.output)
             print(json.dumps({"event": "database_backed_up", **backup}))

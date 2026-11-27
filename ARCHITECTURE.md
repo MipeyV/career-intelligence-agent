@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 provide the deterministic MVP, recovery commands and a synthetic evaluation baseline. Later phases below describe design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 are merged and provide the deterministic MVP, recovery commands and a synthetic evaluation baseline. Milestone 2.1a adds the provider-neutral offline extraction boundary. Live adapters and other later work below remain design targets.
 
 ## 1. Design and scope
 
@@ -160,6 +160,8 @@ Use configured role aliases for the target AI/ML, software, infrastructure, appl
 Phase 1 does not parse every eligibility requirement from prose. It will expose the description and leave those assessments pending Phase 2. Filter changes invalidate only decisions, not job revisions.
 
 ## 6. Later intelligent workflow
+
+Implemented in 2.1a: `extraction.py` defines a strict quoted-fact schema, a small async provider protocol, bounded local response replay and a validation service. `jobs extract` selects an immutable revision read-only and returns a separate versioned result; it does not mutate or persist source facts. Only title, location and description enter the provider request. Exact Unicode spans, finite confidence values, collection bounds and explicit-empty evidence are validated. Oversized, malformed, timed-out or unsupported responses produce safe failure statuses, with no retries. This validates textual presence, not semantic entailment. See [the extraction contract](docs/EXTRACTION.md). No database migration or dependency addition is needed for this increment.
 
 Phase 2 introduces a provider-agnostic structured-analysis interface backed by LangChain adapters for Ollama and optional OpenAI. Local inference must work without an OpenAI key. Validate bounded structured outputs and evidence spans; reject unsupported quotations. No tools are exposed to a model processing job descriptions. External content cannot change system instructions, access secrets, execute code, or modify candidate facts.
 

@@ -843,6 +843,35 @@ def list_jobs(
         engine.dispose()
 
 
+def get_revision(path: Path, job_id: str, *, number: int | None = None) -> dict:
+    """Read a specific immutable revision, or select the current one in one query."""
+    if number is not None and number < 1:
+        raise StorageError("Revision number must be positive")
+    if not path.is_file():
+        raise StorageError("Database does not exist. Run collect with --persist first")
+    engine = _engine(path.resolve(), readonly=True)
+    try:
+        with engine.connect() as connection:
+            _check_schema(connection)
+            statement = (
+                select(
+                    revisions.c.job_id,
+                    revisions.c.number,
+                    revisions.c.fingerprint,
+                    revisions.c.payload,
+                )
+                .join(jobs, jobs.c.id == revisions.c.job_id)
+                .where(jobs.c.id == job_id)
+                .where(revisions.c.number == (jobs.c.revision if number is None else number))
+            )
+            row = connection.execute(statement).mappings().first()
+            if row is None:
+                raise StorageError("Unknown job or revision")
+            return dict(row)
+    finally:
+        engine.dispose()
+
+
 def list_changes(
     path: Path, *, since_run: str | None = None, limit: int = 100, offset: int = 0
 ) -> list[dict]:

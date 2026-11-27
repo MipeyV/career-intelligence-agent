@@ -280,6 +280,13 @@ class FilterPolicy(_ConfigModel):
     comparable_pay_filter_enabled: bool = False
 
 
+class ExtractionLimits(_ConfigModel):
+    max_input_bytes: Annotated[int, Field(ge=1, le=1_048_576)] = 65_536
+    max_output_bytes: Annotated[int, Field(ge=1, le=1_048_576)] = 131_072
+    max_output_tokens: Annotated[int, Field(ge=1, le=32768)] = 4096
+    timeout_seconds: Annotated[float, Field(gt=0, le=300, allow_inf_nan=False)] = 30
+
+
 class Settings(_ConfigModel):
     schema_version: Literal[1]
     profile_file: ConfigPath
@@ -288,6 +295,7 @@ class Settings(_ConfigModel):
     collection: CollectionLimits = Field(default_factory=CollectionLimits)
     reconciliation: ReconciliationPolicy = Field(default_factory=ReconciliationPolicy)
     filters: FilterPolicy = Field(default_factory=FilterPolicy)
+    extraction: ExtractionLimits = Field(default_factory=ExtractionLimits)
 
     @field_validator("profile_file", "companies_file", "database_path", mode="before")
     @classmethod

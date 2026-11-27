@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Milestone 1.6 implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
+**Phase 1 merged; milestone 2.1a implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. The first structured-extraction increment validates offline response fixtures against immutable job revisions. No live model or new dependency is enabled. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -60,6 +60,16 @@ Runtime and development versions are pinned with hashes in `uv.lock`. Use `uv sy
 | Package build backend | uv_build, matching the pinned uv toolchain |
 
 The user approved this Phase 1 dependency set on 2026-11-25. No Typer, retry framework, vector database, queue, web server, or migration framework is necessary for the first milestone. LangChain provider adapters are planned for Phase 2 and LangGraph orchestration for Phase 3, with their dependencies reviewed at those boundaries.
+
+## Offline structured-extraction contract
+
+After persisting the synthetic Greenhouse fixture, take the Research Engineer job ID from `jobs list` and validate its prepared response against revision 1:
+
+```text
+uv run --locked --offline career-intelligence jobs extract --config conf/settings.yml --job-id JOB_ID --revision 1 --response-fixture tests/fixtures/extraction/initial-response.json
+```
+
+Every extracted fact needs an exact quoted span from the named posting field. Unknowns stay null; explicit empty collections require evidence. Invalid output is rejected in full, and extraction never modifies collected facts, filter decisions or candidate data. The command only replays a local response, with no model calls. See [the extraction guide](docs/EXTRACTION.md) for the disposable demonstration, schema, limits, failure statuses and remaining provider work.
 
 ## Configuration and privacy
 
@@ -188,4 +198,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Phase 1's deterministic implementation milestones are complete. Independent annotation review and a broader real-source held-out benchmark remain pending. Phase 2 introduces structured intelligence after dependency/provider review. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.
+Phase 1's deterministic implementation milestones are complete and merged. Independent annotation review and a broader real-source held-out benchmark remain pending. Phase 2.1a implements the extraction contract and offline response validation; live model integration in 2.1b still requires dependency/provider review. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.

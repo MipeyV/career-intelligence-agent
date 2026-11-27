@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.5 were merged through PRs #1-#5. Milestone 1.6 adds evaluation, end-to-end validation and recovery procedures on its dedicated branch.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 were merged through PRs #1-#6, with passing Windows/Ubuntu CI. The next increment is the offline structured-extraction contract (2.1a), without new dependencies or live model activation.
 
 ## Branches, reviews and CI/CD
 
@@ -154,6 +154,18 @@ Milestone 1.1 supersedes the initial Python limitation: the approved environment
 ## Phase 2: structured intelligence
 
 Introduce LangChain provider adapters only after reviewing their dependencies. Separate milestones: (2.1) structured job extraction with mock responses and grounded evidence validation; (2.2) eligibility rules and interpretations; (2.3) nine dimension rubrics, deterministic aggregation, confidence and coverage; (2.4) compensation components/provenance and optional authorized benchmarks; (2.5) versioned analysis caching and token/cost budgets.
+
+### 2.1a: offline extraction contract
+
+Implemented on `feat/phase-2-1-structured-extraction`: Pydantic quoted facts and nullable collections, exact field/span validation, explicit-empty evidence, a provider protocol and bounded local response replay. `jobs extract` binds output to an immutable selected revision and emits a separate JSON result without changing SQLite. Invalid output is rejected as a whole. Input/output bytes, cooperative timeout and a single attempt are bounded; profile and raw source data are excluded from provider requests.
+
+Tests cover hallucinated/wrong-field evidence, Unicode offsets, date precision, null/empty distinctions, duplicate JSON keys, strict types, invalid UTF-8, response/input limits, provider failures, cancellation, historical revisions and read-only CLI behavior. Fixture responses are synthetic contract examples, not measured model quality. See [docs/EXTRACTION.md](docs/EXTRACTION.md).
+
+Local verification on 2026-11-27 passed 196 offline tests, Ruff lint/format, source/wheel builds and isolated wheel installation on Windows/Python 3.12.14. The existing 16-case benchmark passed with zero replay-created events and backup/restore equality. Documentation links and code fences were checked. Hosted Windows/Ubuntu CI is checked on the increment PR; no live inference was run.
+
+### 2.1b: approved local provider integration (planned)
+
+Review the LangChain/Ollama dependency set, then lock compatible versions before installation. Add an explicitly configured local adapter with bounded HTTP work, offline mocks and failure fallback through the existing extraction validator. Validate model/hardware availability separately with opt-in live checks. Remote providers and profile transmission stay disabled unless explicitly configured. No live model or adapter has been tested by 2.1a, and milestone 2.1 remains incomplete until its provider gate passes.
 
 Gate: annotated relevant/irrelevant/ambiguous cases; hallucinated evidence rejected; local provider works with no OpenAI key; remote provider remains optional; malformed/model-unavailable/budget-exhausted paths retain deterministic behavior. Matching is reproducible for fixed dimension inputs and never described as hiring probability. CV enrichment is opt-in and cannot silently turn inferred facts into verified skills.
 

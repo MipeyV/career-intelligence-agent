@@ -76,6 +76,17 @@ def main() -> None:
             env=env,
         )
         assert json.loads(output)["event"] == "configuration_valid"
+        extraction_help = run(
+            str(python),
+            "-c",
+            entry_point_script,
+            "jobs",
+            "extract",
+            "--help",
+            cwd=directory,
+            env=env,
+        )
+        assert "--response-fixture" in extraction_help
     print("Built wheel installs and validates configuration outside the repository.")
 
 

@@ -70,6 +70,8 @@ jobs:
         run: uv run --locked --offline career-intelligence db restore --backup data/ci-backup.sqlite3 --destination data/ci-restored.sqlite3
       - name: Measure the synthetic benchmark and replay invariants
         run: uv run --locked --offline python scripts/evaluate.py
+      - name: Check offline extraction CLI availability
+        run: uv run --locked --offline career-intelligence jobs extract --help
       - run: uv build --no-build-isolation --offline
       - name: Verify installed wheel in a fresh environment
         run: uv run --locked --offline python scripts/check_distribution.py
