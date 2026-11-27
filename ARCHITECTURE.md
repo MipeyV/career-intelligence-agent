@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Status: Phase 1 architecture and dependency set approved by the user on 2026-11-25. Milestone 1.1 implements the package, configuration contracts, validation CLI and CI definition. Collection, storage and later phases below remain design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1 and 1.2 provide configuration validation and a collection preview. Storage and later phases below describe design targets.
 
 ## 1. Design and scope
 
@@ -78,7 +78,9 @@ Where an API supports pagination, exhaust its documented mechanism within the li
 
 Propose Greenhouse's public Job Board API. Its documented list route is `GET https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs?content=true`; GET requests need no authentication. The list includes post `id`, `internal_job_id`, `absolute_url`, and `updated_at`; the two IDs represent different identities. Rate limiting is possible. The documented list response includes `jobs` and `meta.total`, without a documented pagination parameter. Verify count consistency and actual board behavior rather than borrowing Harvest pagination. [Official Greenhouse contract](https://docs.greenhouse.io/job-board.html).
 
-Before implementation of live collection, validate at least one real board token from an official careers page, permitted access, payload shape, count behavior, HTML encoding, empty-board behavior, and any regional host differences. Documentation review is complete; no live-board collection has been performed. Public accessibility does not establish permission for every employer's intended use. Record the reviewed source conditions before enabling it.
+The connector issues one list GET per attempt against the documented API host and processes boards sequentially. It compares `meta.total` to the number of returned rows before filtering prospect posts. Missing totals, duplicate post IDs, invalid rows and item truncation produce partial snapshots. An unreadable or oversized body produces a failed snapshot. A valid empty response can be transport-complete. Reconciliation will still need to treat unexpected empty results as anomalies in milestone 1.4.
+
+On 2026-11-25, a single unauthenticated GET for Datadog's public Greenhouse board returned 391 of 391 rows, all normalized successfully. The public board resolves to the employer's careers site. The smoke check used only the documented GET endpoint, retained aggregate counts, and left Datadog disabled in the shipped watchlist. Employer site terms limit content reuse. Review the relevant terms and intended use before enabling recurring collection or retaining and redistributing employer content. Empty-board behavior was tested with a synthetic fixture. Regional hosts remain outside the tested scope. [Datadog careers](https://careers.datadoghq.com/), [public board](https://job-boards.greenhouse.io/datadog), [Datadog site terms](https://www.datadoghq.com/legal/terms/).
 
 ### Normalized posting
 

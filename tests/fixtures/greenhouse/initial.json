@@ -1,0 +1,16 @@
+{
+  "jobs": [
+    {
+      "id": 101,
+      "internal_job_id": 202,
+      "title": "Research Engineer",
+      "absolute_url": "https://example.com/careers?gh_jid=101",
+      "location": {"name": "Example City"},
+      "updated_at": "2026-04-04T12:00:00-04:00",
+      "content": "&amp;lt;p&amp;gt;Build models &amp;amp; tools.&amp;lt;/p&amp;gt;&amp;lt;p&amp;gt;Evaluate results.&amp;lt;/p&amp;gt;"
+    },
+    {"id": 102, "title": "Data Scientist"},
+    {"id": 103, "internal_job_id": null, "title": "Join our talent pool"}
+  ],
+  "meta": {"total": 3}
+}

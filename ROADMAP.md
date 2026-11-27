@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Status: Phase 1 scope and dependencies approved by the user on 2026-11-25. Milestone 1.1 is implemented on `feat/phase-1-1-bootstrap` for PR review; later milestones are not implemented. Later phases are not implicitly authorized by Phase 1 approval.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestone 1.1 was merged in PR #1. Milestone 1.2 implements Greenhouse collection and offline preview on its dedicated branch.
 
 ## Branches, reviews and CI/CD
 
@@ -30,6 +30,8 @@ Deliver:
 Exit check: clean install from the lock; `--help` and `config validate` work with no API key or network. Unknown YAML fields, duplicate source keys, invalid dates/limits, unsafe YAML, and missing required configuration fail with actionable errors. Importing the package has no collection or database side effects. No candidate details appear in source code or fixtures. The first code PR passes the CI lint/format, test, locked-installation and package-build jobs.
 
 ### 1.2: Greenhouse collection and normalization
+
+Implementation validation includes offline HTTP mocks and fixture replay. A one-request smoke check of Datadog's public Greenhouse board returned 391 normalized postings with a complete count. The shipped watchlist still requires explicit enablement and source review before recurring use. See the access notes in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Deliver:
 

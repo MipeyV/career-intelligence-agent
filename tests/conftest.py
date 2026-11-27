@@ -9,9 +9,19 @@ import yaml
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
+    original_socketpair = socket.socketpair
+    original_connect = socket.socket.connect
+
     def forbidden(*args, **kwargs):
         raise AssertionError("Network access is forbidden in offline tests")
 
+    def local_socketpair(*args, **kwargs):
+        # Windows implements the event loop's internal socketpair over loopback.
+        with monkeypatch.context() as local:
+            local.setattr(socket.socket, "connect", original_connect)
+            return original_socketpair(*args, **kwargs)
+
+    monkeypatch.setattr(socket, "socketpair", local_socketpair)
     monkeypatch.setattr(socket.socket, "connect", forbidden)
     monkeypatch.setattr(socket.socket, "connect_ex", forbidden)
     monkeypatch.setattr(socket, "create_connection", forbidden)

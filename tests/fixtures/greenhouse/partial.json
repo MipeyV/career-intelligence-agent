@@ -1,0 +1,10 @@
+{
+  "jobs": [
+    {"id": 101, "title": "Ambiguous first record"},
+    {"id": 101, "title": "Ambiguous second record"},
+    {"id": 102, "title": "Valid role"},
+    {"id": 103},
+    {"id": 104, "title": "Invalid URL", "absolute_url": "javascript:alert(1)"}
+  ],
+  "meta": {"total": 6}
+}

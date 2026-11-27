@@ -30,28 +30,18 @@ def main() -> None:
         venv = directory / "environment"
         run("uv", "venv", "--python", "3.12", str(venv), cwd=root, env=env)
         python = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-        requirements = directory / "requirements.txt"
+        # Install directly from the lock. A prior uv sync caches locked artifacts,
+        # but need not cache registry metadata for a second pip-style resolution.
+        install_env = dict(env, UV_PROJECT_ENVIRONMENT=str(venv))
         run(
             "uv",
-            "export",
+            "sync",
             "--locked",
             "--no-dev",
-            "--no-emit-project",
-            "--output-file",
-            str(requirements),
-            cwd=root,
-            env=env,
-        )
-        run(
-            "uv",
-            "pip",
-            "sync",
+            "--no-install-project",
             "--offline",
-            "--python",
-            str(python),
-            str(requirements),
             cwd=root,
-            env=env,
+            env=install_env,
         )
         run(
             "uv",

@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Milestone 1.1 implemented.** The package, offline configuration-validation CLI, synthetic profile, 39-company watchlist, dependency lock, tests, and GitHub Actions workflow are present. Collection, storage and matching are not implemented yet. All company sources remain disabled until their official endpoints and access conditions are verified in milestone 1.2.
+**Milestone 1.2 implemented.** The CLI validates configuration and previews normalized Greenhouse job postings from an offline fixture or from explicitly enabled live sources. The default watchlist contains 39 companies with live collection disabled. SQLite persistence and change detection follow in milestones 1.3 and 1.4.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -78,7 +78,25 @@ Copy `conf/profile.example.yml` to `conf/profile.local.yml`, replace the synthet
 
 Dates accept `YYYY`, `YYYY-MM` and `YYYY-MM-DD` text and preserve precision; quote a year such as `"2028"` so YAML does not treat it as an integer. Unknown facts use null. The loader rejects unknown fields, duplicate keys, aliases, custom YAML tags, invalid dates/limits and files larger than 1 MiB. It accepts UTF-8 with or without a byte-order mark.
 
-Companies can be added without a connector, provided `disabled_reason` explains why they are not collected. A configured enabled source requires a unique key, provider `greenhouse`, a board token and an attributable HTTPS careers URL; validate access before enabling one. Other provider names can be documented as disabled future integrations. Configuring a source does not collect it in this milestone.
+Companies can be added without a connector when `disabled_reason` explains why collection is disabled. An enabled source requires a unique key, provider `greenhouse`, a board token and an attributable HTTPS careers URL. Other provider names can be documented as disabled future integrations.
+
+## Preview job collection
+
+Run a synthetic Greenhouse response through the normalizer offline:
+
+```text
+uv run --locked --offline career-intelligence collect --config conf/settings.yml --fixture tests/fixtures/greenhouse/initial.json
+```
+
+For a live preview, use a local settings and watchlist copy. After reviewing the official board and its applicable access conditions, add an enabled source under its company in `companies.local.yml` and remove that company's `disabled_reason`. Point `settings.local.yml` at the local watchlist. Select a single enabled source by its configured key:
+
+```text
+uv run --locked career-intelligence collect --config conf/settings.local.yml --live --source SOURCE_KEY
+```
+
+Omitting `--source` processes every enabled source sequentially. The connector uses the public Greenhouse list endpoint with full descriptions, a run deadline, rate limits and bounded retries. It preserves available source facts and emits JSON null for unknown facts. Publication time and source update time have separate fields. [Greenhouse Job Board API](https://docs.greenhouse.io/job-board.html#list-jobs).
+
+The preview writes normalized records and a status per source to stdout. Structured issue summaries go to stderr. A complete preview exits with `0`. A partial preview or a mix of successful and failed sources exits with `3`. An entirely failed preview exits with `1`. Invalid arguments or configuration exit with `2`. The preview keeps evidence in memory and creates no database.
 
 ## Verification
 
@@ -96,7 +114,7 @@ Tests use synthetic data and temporary files, reject attempted network connectio
 
 If the shared Windows temporary folder has restrictive permissions, run Pytest with `--basetemp .pytest_cache/local-run` using a disposable project-local directory. This was needed for local verification on the development machine.
 
-Future commands for collection, job listing and change history arrive in milestones 1.2-1.5. The CLI currently exposes only help, version and `config validate`.
+The GitHub Actions workflow also exercises the fixture preview through the installed CLI. A live API check is separate from the offline test suite.
 
 ## Long-term scope
 
@@ -108,4 +126,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Delivery automation follows in Phase 4 with Docker and a separately chosen release/deployment target; no deployment pipeline exists yet. The next implementation milestone is **1.2: Greenhouse collection and normalization**, on a separate branch after review of 1.1.
+Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.3, durable storage and deterministic identity**.
