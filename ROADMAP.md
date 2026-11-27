@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 were merged through PRs #1-#6, with passing Windows/Ubuntu CI. The next increment is the offline structured-extraction contract (2.1a), without new dependencies or live model activation.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a were merged through PRs #1-#7, with passing Windows/Ubuntu CI. Milestone 2.1b implements the optional Ollama adapter, whose dependency set the user approved on 2026-11-27. No model download or live inference was authorized or run in this increment.
 
 ## Branches, reviews and CI/CD
 
@@ -163,9 +163,13 @@ Tests cover hallucinated/wrong-field evidence, Unicode offsets, date precision, 
 
 Local verification on 2026-11-27 passed 196 offline tests, Ruff lint/format, source/wheel builds and isolated wheel installation on Windows/Python 3.12.14. The existing 16-case benchmark passed with zero replay-created events and backup/restore equality. Documentation links and code fences were checked. Hosted Windows/Ubuntu CI is checked on the increment PR; no live inference was run.
 
-### 2.1b: approved local provider integration (planned)
+### 2.1b: optional local provider integration
 
-Review the LangChain/Ollama dependency set, then lock compatible versions before installation. Add an explicitly configured local adapter with bounded HTTP work, offline mocks and failure fallback through the existing extraction validator. Validate model/hardware availability separately with opt-in live checks. Remote providers and profile transmission stay disabled unless explicitly configured. No live model or adapter has been tested by 2.1a, and milestone 2.1 remains incomplete until its provider gate passes.
+Implemented on `feat/phase-2-1-ollama`: the approved optional extra pins LangChain Core 1.8.5 and LangChain Ollama 1.2.0, while preserving existing locked package versions. Explicit local settings plus `--ollama` select the adapter. Bounded model preflight and chat routes use no retries, redirects, proxies, tools, tracing or inherited credentials. Native schema output retains strict evidence validation. Candidate profiles are excluded; missing extra/model, malformed output, remote metadata and transport failures leave deterministic discovery usable. The adapter records the configured model tag and closes clients on failure/cancellation.
+
+The base installation and optional extra have separate Windows/Ubuntu CI matrix entries, including isolated wheel checks. Tests use the real pinned LangChain/Ollama implementation with mock transport and do not open network connections. See [the dependency review](docs/OLLAMA-DEPENDENCIES.md) and [local-provider guide](docs/EXTRACTION.md). Actual installed-model/hardware compatibility and semantic extraction quality remain pending a separate opt-in synthetic live check; model downloads and remote providers are not enabled.
+
+Local verification on 2026-11-27 passed 244 tests with the extra, plus 219 base tests with one intentionally skipped optional integration module. Ruff lint/format, source/wheel builds and isolated base/extra wheel checks passed on Windows/Python 3.12.14. The original synthetic benchmark and documentation link/fence checks passed; all pre-existing locked versions were preserved. Hosted CI is checked on the increment PR. No live model inference was performed.
 
 Gate: annotated relevant/irrelevant/ambiguous cases; hallucinated evidence rejected; local provider works with no OpenAI key; remote provider remains optional; malformed/model-unavailable/budget-exhausted paths retain deterministic behavior. Matching is reproducible for fixed dimension inputs and never described as hiring probability. CV enrichment is opt-in and cannot silently turn inferred facts into verified skills.
 

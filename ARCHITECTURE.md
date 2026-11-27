@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 are merged and provide the deterministic MVP, recovery commands and a synthetic evaluation baseline. Milestone 2.1a adds the provider-neutral offline extraction boundary. Live adapters and other later work below remain design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a are merged. Milestone 2.1b adds an optional local Ollama adapter with dependencies approved on 2026-11-27. The adapter has offline HTTP-contract validation; actual live inference and later intelligent services remain to be validated or implemented.
 
 ## 1. Design and scope
 
@@ -163,7 +163,9 @@ Phase 1 does not parse every eligibility requirement from prose. It will expose 
 
 Implemented in 2.1a: `extraction.py` defines a strict quoted-fact schema, a small async provider protocol, bounded local response replay and a validation service. `jobs extract` selects an immutable revision read-only and returns a separate versioned result; it does not mutate or persist source facts. Only title, location and description enter the provider request. Exact Unicode spans, finite confidence values, collection bounds and explicit-empty evidence are validated. Oversized, malformed, timed-out or unsupported responses produce safe failure statuses, with no retries. This validates textual presence, not semantic entailment. See [the extraction contract](docs/EXTRACTION.md). No database migration or dependency addition is needed for this increment.
 
-Phase 2 introduces a provider-agnostic structured-analysis interface backed by LangChain adapters for Ollama and optional OpenAI. Local inference must work without an OpenAI key. Validate bounded structured outputs and evidence spans; reject unsupported quotations. No tools are exposed to a model processing job descriptions. External content cannot change system instructions, access secrets, execute code, or modify candidate facts.
+Implemented in 2.1b: a lazily imported LangChain/Ollama adapter, explicitly selected with `--ollama`, uses only a validated loopback IP endpoint. A bounded `/api/show` preflight must identify a local completion model before `/api/chat` receives posting text. Native schema steering preserves raw JSON for the existing validator; tool calls and incomplete generation are refused. HTTP response bytes, timeout, output tokens and context are bounded/configured, with no retries, proxy inheritance, redirects or tracing. A clean task context isolates ambient callbacks; inherited authorization is stripped. SDK clients close on success, failure and cancellation. The pinned integration's private client references are a small documented compatibility boundary. Default installation and deterministic services do not import LangChain. Model/hardware compatibility and semantic extraction quality require a separately authorized live check.
+
+Optional OpenAI remains planned. Local inference needs no OpenAI key. No tools are exposed to a model processing job descriptions. Output can only contribute validated quoted interpretations; it cannot access secrets, execute code, or modify candidate facts. A source quote proves textual presence, not semantic correctness or prompt-injection resistance.
 
 Assess eligibility first: eligible, potentially eligible, uncertain, or not eligible, with rule-level job and candidate evidence. Cover graduation and availability precision, required experience and apprenticeship treatment, degrees/PhD, languages, work rights, geography, and deadlines. Only explicit contradictions establish hard ineligibility. Distinguish a likely bridgeable gap from insufficient evidence.
 

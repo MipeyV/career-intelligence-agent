@@ -18,6 +18,9 @@ dependencies = [
 [project.scripts]
 career-intelligence = "career_intelligence.cli:main"
 
+[project.optional-dependencies]
+ollama = ["langchain-core==1.8.5", "langchain-ollama==1.2.0"]
+
 [dependency-groups]
 dev = ["pytest>=8,<10", "ruff>=0.9,<1", "uv-build==0.12.12"]
 

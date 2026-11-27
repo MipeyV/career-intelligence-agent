@@ -33,13 +33,14 @@ jobs:
       - run: uv run --locked --offline python -m ruff format --check .
 
   tests:
-    name: Tests and package (${{ matrix.os }})
+    name: Tests and package (${{ matrix.os }}, ${{ matrix.extra }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        extra: [base, ollama]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -50,7 +51,10 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --locked --dev
-      - run: uv run --locked --offline python -m pytest
+      - name: Install the optional local provider
+        if: matrix.extra == 'ollama'
+        run: uv sync --locked --dev --extra ollama
+      - run: uv run --locked --offline ${{ matrix.extra == 'ollama' && '--extra ollama' || '' }} python -m pytest
       - run: uv run --locked --offline career-intelligence config validate --config conf/settings.yml
       - name: Preview a Greenhouse fixture
         run: uv run --locked --offline career-intelligence collect --config conf/settings.yml --fixture tests/fixtures/greenhouse/initial.json
@@ -74,4 +78,4 @@ jobs:
         run: uv run --locked --offline career-intelligence jobs extract --help
       - run: uv build --no-build-isolation --offline
       - name: Verify installed wheel in a fresh environment
-        run: uv run --locked --offline python scripts/check_distribution.py
+        run: uv run --locked --offline python scripts/check_distribution.py ${{ matrix.extra == 'ollama' && '--extra ollama' || '' }}

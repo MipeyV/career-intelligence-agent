@@ -126,6 +126,14 @@ class OutputLimitError(ValueError):
     """The provider response exceeds its configured byte budget."""
 
 
+class ProviderNotInstalledError(RuntimeError):
+    """The explicitly selected optional provider is not installed."""
+
+
+class InvalidProviderOutputError(ValueError):
+    """An incomplete or non-text provider response cannot be used as extraction."""
+
+
 class ExtractionResult(_Model):
     schema_version: Literal[1] = 1
     prompt_version: str = PROMPT_VERSION
@@ -134,6 +142,7 @@ class ExtractionResult(_Model):
     revision_fingerprint: str
     input_sha256: str
     provider: str
+    model: str | None = None
     provider_attempts: int
     status: Literal[
         "complete",
@@ -141,6 +150,7 @@ class ExtractionResult(_Model):
         "output_limit",
         "timeout",
         "provider_unavailable",
+        "provider_not_installed",
         "invalid_output",
         "ungrounded_evidence",
     ]
@@ -166,6 +176,7 @@ async def extract_revision(
     *,
     provider_name: str,
     limits: ExtractionLimits,
+    model_name: str | None = None,
 ) -> ExtractionResult:
     """Make at most one bounded provider attempt for an immutable stored revision.
 
@@ -181,6 +192,7 @@ async def extract_revision(
         "revision_fingerprint": revision["fingerprint"],
         "input_sha256": hashlib.sha256(encoded).hexdigest(),
         "provider": provider_name,
+        "model": model_name,
     }
 
     def outcome(status, *, attempts=1, extraction=None):
@@ -202,6 +214,10 @@ async def extract_revision(
         )
     except OutputLimitError:
         return outcome("output_limit")
+    except ProviderNotInstalledError:
+        return outcome("provider_not_installed")
+    except InvalidProviderOutputError:
+        return outcome("invalid_output")
     except TimeoutError:
         return outcome("timeout")
     except UnicodeError:

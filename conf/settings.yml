@@ -5,12 +5,17 @@ profile_file: profile.example.yml
 companies_file: companies.yml
 database_path: ../data/career-intelligence.sqlite3
 
-# Only used by the explicit offline `jobs extract` command. No live model is enabled.
+# Used only by the explicit `jobs extract` command. No model is configured by default.
 extraction:
   max_input_bytes: 65536
   max_output_bytes: 131072
   max_output_tokens: 4096
   timeout_seconds: 30
+
+# Optional in an ignored settings copy after choosing an installed local model:
+# ollama:
+#   model: YOUR_LOCAL_MODEL
+#   base_url: http://127.0.0.1:11434
 
 collection:
   connect_timeout_seconds: 5

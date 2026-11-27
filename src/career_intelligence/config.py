@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import calendar
+import ipaddress
 import re
 from dataclasses import dataclass
 from datetime import date
@@ -287,6 +288,51 @@ class ExtractionLimits(_ConfigModel):
     timeout_seconds: Annotated[float, Field(gt=0, le=300, allow_inf_nan=False)] = 30
 
 
+class OllamaSettings(_ConfigModel):
+    model: Annotated[
+        str,
+        Field(
+            min_length=1,
+            max_length=200,
+            pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*"
+            r"(?::[A-Za-z0-9][A-Za-z0-9._-]*)?$",
+        ),
+    ]
+    base_url: str = "http://127.0.0.1:11434"
+    num_ctx: Annotated[int, Field(ge=512, le=131072)] = 8192
+    seed: Annotated[int, Field(ge=0, le=2_147_483_647)] = 0
+    max_response_bytes: Annotated[int, Field(ge=1024, le=10_485_760)] = 2_097_152
+
+    @field_validator("model")
+    @classmethod
+    def local_model_only(cls, value: str) -> str:
+        if value.casefold().endswith(("-cloud", ":cloud")):
+            raise ValueError("use an installed local model, not a cloud model")
+        return value
+
+    @field_validator("base_url")
+    @classmethod
+    def loopback_endpoint(cls, value: str) -> str:
+        try:
+            parts = urlsplit(value)
+            valid = (
+                parts.scheme == "http"
+                and ipaddress.ip_address(parts.hostname).is_loopback
+                and parts.username is None
+                and parts.password is None
+                and parts.path in {"", "/"}
+                and not parts.query
+                and not parts.fragment
+                and (parts.port is None or 1 <= parts.port <= 65535)
+                and not re.search(r"[\s\\]", value)
+            )
+        except (ValueError, TypeError):
+            valid = False
+        if not valid:
+            raise ValueError("use an HTTP loopback IP URL without credentials, path or query")
+        return value.rstrip("/")
+
+
 class Settings(_ConfigModel):
     schema_version: Literal[1]
     profile_file: ConfigPath
@@ -296,6 +342,7 @@ class Settings(_ConfigModel):
     reconciliation: ReconciliationPolicy = Field(default_factory=ReconciliationPolicy)
     filters: FilterPolicy = Field(default_factory=FilterPolicy)
     extraction: ExtractionLimits = Field(default_factory=ExtractionLimits)
+    ollama: OllamaSettings | None = None
 
     @field_validator("profile_file", "companies_file", "database_path", mode="before")
     @classmethod

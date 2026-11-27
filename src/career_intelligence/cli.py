@@ -13,6 +13,7 @@ from career_intelligence.backup import copy_database
 from career_intelligence.config import ConfigurationError, load_configuration
 from career_intelligence.extraction import FixtureProvider, extract_revision
 from career_intelligence.filtering import configuration_hash
+from career_intelligence.ollama_provider import OllamaProvider
 from career_intelligence.presentation import change_table, job_table
 from career_intelligence.preview import preview
 from career_intelligence.storage import StorageError, Store, get_revision, list_changes, list_jobs
@@ -54,12 +55,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     refilter_parser.add_argument("--config", type=Path, required=True)
     extraction_parser = jobs_commands.add_parser(
-        "extract", help="Validate a response fixture against a stored job revision (offline)"
+        "extract", help="Extract quoted facts from a stored revision (fixture or local Ollama)"
     )
     extraction_parser.add_argument("--config", type=Path, required=True)
     extraction_parser.add_argument("--job-id", required=True)
     extraction_parser.add_argument("--revision", type=int)
-    extraction_parser.add_argument("--response-fixture", type=Path, required=True)
+    extraction_mode = extraction_parser.add_mutually_exclusive_group(required=True)
+    extraction_mode.add_argument("--response-fixture", type=Path)
+    extraction_mode.add_argument(
+        "--ollama", action="store_true", help="Call configured local Ollama"
+    )
     changes_parser = commands.add_parser("changes", help="Inspect durable change events")
     changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
     changes_list = changes_commands.add_parser("list", help="List change events as JSON")
@@ -95,16 +100,24 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         loaded = load_configuration(args.config)
         if args.command == "jobs" and args.jobs_command == "extract":
+            if args.ollama and loaded.settings.ollama is None:
+                raise ConfigurationError("Configure the ollama model and loopback endpoint first")
             revision = get_revision(
                 loaded.settings.database_path, args.job_id, number=args.revision
             )
             limits = loaded.settings.extraction
+            provider = (
+                OllamaProvider(loaded.settings.ollama, limits)
+                if args.ollama
+                else FixtureProvider(args.response_fixture, limits.max_output_bytes)
+            )
             result = asyncio.run(
                 extract_revision(
                     revision,
-                    FixtureProvider(args.response_fixture, limits.max_output_bytes),
-                    provider_name="fixture",
+                    provider,
+                    provider_name="ollama" if args.ollama else "fixture",
                     limits=limits,
+                    model_name=loaded.settings.ollama.model if args.ollama else None,
                 )
             )
             print(result.model_dump_json())
