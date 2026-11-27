@@ -64,6 +64,12 @@ jobs:
         run: uv run --locked --offline career-intelligence jobs refilter --config conf/settings.yml
       - name: Show discovery decisions in a table
         run: uv run --locked --offline career-intelligence jobs list --config conf/settings.yml --decision keep,review --format table
+      - name: Back up the fixture database
+        run: uv run --locked --offline career-intelligence db backup --config conf/settings.yml --output data/ci-backup.sqlite3
+      - name: Restore into a new database
+        run: uv run --locked --offline career-intelligence db restore --backup data/ci-backup.sqlite3 --destination data/ci-restored.sqlite3
+      - name: Measure the synthetic benchmark and replay invariants
+        run: uv run --locked --offline python scripts/evaluate.py
       - run: uv build --no-build-isolation --offline
       - name: Verify installed wheel in a fresh environment
         run: uv run --locked --offline python scripts/check_distribution.py

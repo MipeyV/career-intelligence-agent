@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.4 were merged through PRs #1-#4. Milestone 1.5 adds deterministic filtering on its dedicated branch for review.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.5 were merged through PRs #1-#5. Milestone 1.6 adds evaluation, end-to-end validation and recovery procedures on its dedicated branch.
 
 ## Branches, reviews and CI/CD
 
@@ -90,6 +90,12 @@ Exit check: relevant unlabelled-junior roles and undisclosed pay remain discover
 
 ### 1.6: end-to-end validation and operational handoff
 
+Implemented on `feat/phase-1-6-evaluation`. A 16-case synthetic development dataset includes relevance labels, expected decisions and rationales. The coding assistant curated its annotations, with independent human review pending. The measured report compares discovery retention, strict keep and a keyword baseline, records timing and replay/failure outcomes, and verifies backup/restore equality. See [evaluation/README.md](evaluation/README.md) and [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+The offline end-to-end test covers settings, mocked Greenhouse GETs, normalization, updates, removal/reopening, exact replay, filtering, CLI output and restoration. Database commands use SQLite backup, integrity checks and atomic publication to a new destination. Hosted CI runs these checks on Windows and Ubuntu.
+
+Local verification on 2026-11-27 passed 164 tests, Ruff lint/format, source/wheel builds and isolated wheel installation on Windows/Python 3.12.14. The synthetic evaluator completed with zero replay-created events and equal restored job/event records. Hosted CI is checked on the milestone PR; independent annotation review remains pending.
+
 Deliver:
 
 - Offline end-to-end tests spanning config -> connector -> normalization -> storage -> reconciliation -> filters -> CLI.
@@ -127,12 +133,12 @@ Notification deduplication is not claimed complete in Phase 1: the acceptance ga
 | Question / assumption | Validation or default | Required by |
 | --- | --- | --- |
 | Approve the proposed Phase 1 dependency set and scope? | Approved by the user on 2026-11-25; record new significant dependency/scope decisions separately | Resolved |
-| Python 3.12 works on the user's environment and dependency lock | Verified using uv 0.12.12 and managed CPython 3.12.14. Tool execution required access outside the sandbox; local tests use a project-local temporary directory to avoid shared Windows Temp permissions | Locally resolved; hosted CI pending |
+| Python 3.12 works on the user's environment and dependency lock | Verified using uv 0.12.12 and managed CPython 3.12.14, with passing Windows/Ubuntu CI on PRs #1-#5 after the packaging cache fix. Local tests use a project-local temporary directory on this Windows host | Resolved for the Phase 1 support matrix |
 | Which watchlist companies expose a usable Greenhouse board? | Verify an official careers link and token; keep unsupported entries disabled | 1.2 |
 | Are intended source access and later commercial reuse permitted? | Review official source conditions; public API existence alone is insufficient | Enablement / Phase 6 |
 | Does the response represent the whole requested scope? | Check documented response, count consistency, duplicates and real payload; conservatively classify uncertainty | 1.2/1.4 |
 | Are 2 complete omissions over 24 hours suitable? | Proposed configurable default; calibrate against fixture and live observation behavior | 1.4 |
-| Can raw evidence be retained locally, and for how long? | Ignore runtime data in Git; propose short raw-payload retention with explicit purge policy before sustained polling | 1.6 / Phase 4 |
+| Can raw evidence be retained locally, and for how long? | Phase 1 keeps all evidence until operator archival. Runtime data and backups are ignored in Git. Per-record purge controls and a recurring-run retention policy remain Phase 4 work | Documented for Phase 1; revisit in Phase 4 |
 | What exact graduation date, work rights, languages and apprenticeship rules apply? | Preserve supplied precision and unknown facts; ask only when a decision depends on them | Phase 2 |
 | What fallback pay threshold and currency policy are desired? | Leave fallback disabled until configured; no assumed FX or benchmark access | Pay filtering / Phase 2 |
 | Which optional model and inference environment are available? | Validate Ollama hardware/context limits or optional remote account; no remote transmission by default | Phase 2 |

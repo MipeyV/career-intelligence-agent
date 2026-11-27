@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.5 provide configuration, collection, persistence, lifecycle reconciliation and deterministic filtering. Evaluation and later phases below describe design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 provide the deterministic MVP, recovery commands and a synthetic evaluation baseline. Later phases below describe design targets.
 
 ## 1. Design and scope
 
@@ -178,6 +178,10 @@ Preparation covers likely topics, algorithms and referenced exercises, statistic
 Phase 4 adds interchangeable notification providers and scheduling. Phase 5 adds Streamlit application tracking, separate from source availability. Phase 6 evaluates the hybrid system against the deterministic baseline before SaaS work.
 
 ## 7. Trade-offs and deployment assumptions
+
+Milestone 1.6 adds an offline evaluation module and a standalone script using the existing data contracts. Synthetic annotations, the candidate profile and keyword baseline are versioned with measured output. A separate end-to-end integration test controls the HTTP transport and observation clock while exercising normal CLI entry points. Eligibility accuracy and hybrid comparison remain unevaluated until the Phase 2 components and reviewed labels exist.
+
+Backup/restore uses Python's SQLite backup API under the existing writer lock. Integrity and foreign-key checks run before publication to a new destination. A temporary snapshot is atomically published with a hard link on the destination filesystem, requiring hard-link support. This preserves existing output files and avoids exposing partial backups. Recovery and retention procedures are in [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 After the initial documentation push, develop every increment on a dedicated branch and submit a PR to `main`. Establish CI in milestone 1.1, alongside the first executable code: locked installation, lint/format checks, offline tests across Windows and Linux, and package-build validation. Extend the checks with each milestone. Delivery automation is introduced with Phase 4 deployment packaging once the release target is defined.
 

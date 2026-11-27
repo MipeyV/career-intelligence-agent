@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
 
 from career_intelligence import __version__
+from career_intelligence.backup import copy_database
 from career_intelligence.config import ConfigurationError, load_configuration
 from career_intelligence.filtering import configuration_hash
 from career_intelligence.presentation import change_table, job_table
@@ -59,6 +60,18 @@ def main(argv: list[str] | None = None) -> int:
     changes_list.add_argument("--limit", type=int, default=100)
     changes_list.add_argument("--offset", type=int, default=0)
     changes_list.add_argument("--format", choices=["json", "table"], default="json")
+    database_parser = commands.add_parser("db", help="Back up or restore a SQLite database")
+    database_commands = database_parser.add_subparsers(dest="db_command", required=True)
+    backup_parser = database_commands.add_parser(
+        "backup", help="Create a consistent database snapshot"
+    )
+    backup_parser.add_argument("--config", type=Path, required=True)
+    backup_parser.add_argument("--output", type=Path, required=True)
+    restore_parser = database_commands.add_parser(
+        "restore", help="Restore into a new database file"
+    )
+    restore_parser.add_argument("--backup", type=Path, required=True)
+    restore_parser.add_argument("--destination", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.command == "collect" and args.source is not None and not args.live:
         collect_parser.error("--source requires --live")
@@ -68,7 +81,15 @@ def main(argv: list[str] | None = None) -> int:
         if not selected_decisions <= {"keep", "review", "exclude"}:
             jobs_list.error("--decision accepts keep,review,exclude")
     try:
+        if args.command == "db" and args.db_command == "restore":
+            restored = copy_database(args.backup, args.destination)
+            print(json.dumps({"event": "database_restored", **restored}))
+            return 0
         loaded = load_configuration(args.config)
+        if args.command == "db":
+            backup = copy_database(loaded.settings.database_path, args.output)
+            print(json.dumps({"event": "database_backed_up", **backup}))
+            return 0
         if args.command == "changes":
             records = list_changes(
                 loaded.settings.database_path,
