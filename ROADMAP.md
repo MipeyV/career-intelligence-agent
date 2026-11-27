@@ -59,6 +59,10 @@ Exit check: two processes run sequentially against the same temporary file datab
 
 ### 1.4: safe lifecycle and change events
 
+Implemented on `feat/phase-1-4-lifecycle`. Schema migration 2 adds durable events and per-source presence with conservative reconciliation. The CLI exposes paginated change history and run-level change counts. Validation covers reopening without a content change, source failures, rollback, replay, scope/policy changes, depleted boards, disabled sources, multiple aliases, and migration of existing data. Hosted CI results are checked on the milestone PR.
+
+Local verification on 2026-11-27 passed 120 tests, Ruff checks, source/wheel builds and isolated wheel installation using Python 3.12.14 on Windows.
+
 Deliver:
 
 - Field-level changes and idempotent events for new, updated, missing, returned, removed-from-source, and reopened observations.

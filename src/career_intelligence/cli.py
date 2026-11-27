@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from career_intelligence import __version__
 from career_intelligence.config import ConfigurationError, load_configuration
 from career_intelligence.preview import preview
-from career_intelligence.storage import StorageError, Store, list_jobs
+from career_intelligence.storage import StorageError, Store, list_changes, list_jobs
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -43,11 +43,27 @@ def main(argv: list[str] | None = None) -> int:
     jobs_list.add_argument("--config", type=Path, required=True)
     jobs_list.add_argument("--limit", type=int, default=100)
     jobs_list.add_argument("--offset", type=int, default=0)
+    changes_parser = commands.add_parser("changes", help="Inspect durable change events")
+    changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
+    changes_list = changes_commands.add_parser("list", help="List change events as JSON")
+    changes_list.add_argument("--config", type=Path, required=True)
+    changes_list.add_argument("--since-run", help="Exclude this run and earlier runs")
+    changes_list.add_argument("--limit", type=int, default=100)
+    changes_list.add_argument("--offset", type=int, default=0)
     args = parser.parse_args(argv)
     if args.command == "collect" and args.source is not None and not args.live:
         collect_parser.error("--source requires --live")
     try:
         loaded = load_configuration(args.config)
+        if args.command == "changes":
+            records = list_changes(
+                loaded.settings.database_path,
+                since_run=args.since_run,
+                limit=args.limit,
+                offset=args.offset,
+            )
+            print(json.dumps({"schema_version": 1, "changes": records}))
+            return 0
         if args.command == "jobs":
             records = list_jobs(
                 loaded.settings.database_path,
@@ -66,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
                             source_key=args.source,
                         )
                     )
-                    saved = store.ingest(result)
+                    saved = store.ingest(result, loaded.settings.reconciliation)
                 print(json.dumps({"event": "collection_persisted", **saved}), file=sys.stderr)
                 if saved["status"] == "failed":
                     return 1

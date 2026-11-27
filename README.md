@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Milestone 1.3 implemented.** Collection can persist normalized postings, source evidence and immutable revision history in SQLite. The CLI lists the latest stored jobs as JSON. The default watchlist contains 39 companies with live collection disabled. Availability reconciliation follows in milestone 1.4.
+**Milestone 1.4 implemented.** Collection persists change events and reconciles missing, removed and reopened source postings. The CLI lists jobs with observed availability and exposes a paginated change history. The default watchlist contains 39 companies with live collection disabled.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -113,6 +113,21 @@ Each source commits in its own transaction. A source storage failure rolls back 
 
 Back up a local database after collection has exited using a normal file copy. Keep private databases and backups under the ignored `data/` directory. An unsupported or unrecognized schema is refused. Read-only listing requires an existing initialized database. Retention and purge controls are planned for operational handoff in milestone 1.6.
 
+## Inspect changes and availability
+
+```text
+uv run --locked --offline career-intelligence changes list --config conf/settings.yml
+uv run --locked --offline career-intelligence changes list --config conf/settings.yml --since-run RUN_ID --limit 100 --offset 0
+```
+
+Events include `new`, `updated`, `missing`, `returned`, `removed_from_source` and `reopened`. Updates include before/after values for changed fields. Every event links to the job and source collection run. `--since-run` returns events from subsequent runs and rejects unknown IDs. Collection summaries include `change_count`.
+
+The default policy requires two consecutive complete omissions spanning at least 24 hours before recording removal from a source. Failed or partial snapshots reset omission counters. An empty or strongly depleted board first needs a distinct later complete poll with the same posting IDs. The configurable depletion threshold is 50 percent. Only confirmed observations from the same source key and scope can contribute absences.
+
+Jobs remain listed while another alias confirms presence. Reappearance restores listed availability and records its transition even when the description is unchanged. Older snapshots cannot overwrite newer reconciliation evidence. The current availability appears separately from the historical revision payload.
+
+The first persistent collection upgrades a version 1 database to version 2 transactionally. Existing postings and evidence are preserved. Existing aliases acquire availability evidence when observed again, and historical revisions receive no backfilled events. Back up existing databases before upgrading.
+
 ## Verification
 
 Run the same checks used by CI:
@@ -141,4 +156,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.4, safe lifecycle and change events**.
+Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.5, conservative filtering and CLI usability**.
