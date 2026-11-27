@@ -10,6 +10,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from career_intelligence import __version__
 from career_intelligence.config import ConfigurationError, load_configuration
+from career_intelligence.filtering import configuration_hash
+from career_intelligence.presentation import change_table, job_table
 from career_intelligence.preview import preview
 from career_intelligence.storage import StorageError, Store, list_changes, list_jobs
 
@@ -43,6 +45,12 @@ def main(argv: list[str] | None = None) -> int:
     jobs_list.add_argument("--config", type=Path, required=True)
     jobs_list.add_argument("--limit", type=int, default=100)
     jobs_list.add_argument("--offset", type=int, default=0)
+    jobs_list.add_argument("--format", choices=["json", "table"], default="json")
+    jobs_list.add_argument("--decision", help="Comma-separated keep,review,exclude labels")
+    refilter_parser = jobs_commands.add_parser(
+        "refilter", help="Evaluate stored jobs with current preferences"
+    )
+    refilter_parser.add_argument("--config", type=Path, required=True)
     changes_parser = commands.add_parser("changes", help="Inspect durable change events")
     changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
     changes_list = changes_commands.add_parser("list", help="List change events as JSON")
@@ -50,9 +58,15 @@ def main(argv: list[str] | None = None) -> int:
     changes_list.add_argument("--since-run", help="Exclude this run and earlier runs")
     changes_list.add_argument("--limit", type=int, default=100)
     changes_list.add_argument("--offset", type=int, default=0)
+    changes_list.add_argument("--format", choices=["json", "table"], default="json")
     args = parser.parse_args(argv)
     if args.command == "collect" and args.source is not None and not args.live:
         collect_parser.error("--source requires --live")
+    selected_decisions = None
+    if args.command == "jobs" and args.jobs_command == "list" and args.decision is not None:
+        selected_decisions = {label.strip() for label in args.decision.split(",")}
+        if not selected_decisions <= {"keep", "review", "exclude"}:
+            jobs_list.error("--decision accepts keep,review,exclude")
     try:
         loaded = load_configuration(args.config)
         if args.command == "changes":
@@ -62,15 +76,32 @@ def main(argv: list[str] | None = None) -> int:
                 limit=args.limit,
                 offset=args.offset,
             )
-            print(json.dumps({"schema_version": 1, "changes": records}))
+            print(
+                change_table(records)
+                if args.format == "table"
+                else json.dumps({"schema_version": 1, "changes": records})
+            )
             return 0
         if args.command == "jobs":
+            if args.jobs_command == "refilter":
+                if not loaded.settings.database_path.is_file():
+                    raise StorageError("Database does not exist. Run collect with --persist first")
+                with Store(loaded.settings.database_path) as store:
+                    summary = store.refilter(loaded.profile, loaded.settings.filters)
+                print(json.dumps({"schema_version": 1, "event": "jobs_refiltered", **summary}))
+                return 0
             records = list_jobs(
                 loaded.settings.database_path,
                 limit=args.limit,
                 offset=args.offset,
+                config_hash=configuration_hash(loaded.profile, loaded.settings.filters),
+                decisions=selected_decisions,
             )
-            print(json.dumps({"schema_version": 1, "jobs": records}))
+            print(
+                job_table(records)
+                if args.format == "table"
+                else json.dumps({"schema_version": 1, "jobs": records})
+            )
             return 0
         if args.command == "collect":
             if args.persist:
@@ -83,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
                         )
                     )
                     saved = store.ingest(result, loaded.settings.reconciliation)
+                    filters = store.refilter(loaded.profile, loaded.settings.filters)
+                    saved["filters"] = filters
                 print(json.dumps({"event": "collection_persisted", **saved}), file=sys.stderr)
                 if saved["status"] == "failed":
                     return 1

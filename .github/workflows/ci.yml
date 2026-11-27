@@ -60,6 +60,10 @@ jobs:
         run: uv run --locked --offline career-intelligence jobs list --config conf/settings.yml
       - name: List durable change events
         run: uv run --locked --offline career-intelligence changes list --config conf/settings.yml
+      - name: Refilter stored opportunities
+        run: uv run --locked --offline career-intelligence jobs refilter --config conf/settings.yml
+      - name: Show discovery decisions in a table
+        run: uv run --locked --offline career-intelligence jobs list --config conf/settings.yml --decision keep,review --format table
       - run: uv build --no-build-isolation --offline
       - name: Verify installed wheel in a fresh environment
         run: uv run --locked --offline python scripts/check_distribution.py
