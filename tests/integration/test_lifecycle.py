@@ -9,6 +9,7 @@ from career_intelligence.storage import (
     LIFECYCLE_TABLES,
     StorageError,
     Store,
+    filter_decisions,
     list_changes,
     list_jobs,
     schema,
@@ -177,7 +178,7 @@ def test_migrate_version_one_preserves_jobs(tmp_path):
     with Store(path) as store:
         store.ingest(poll())
         with store.engine.begin() as connection:
-            for table in reversed(LIFECYCLE_TABLES):
+            for table in reversed((*LIFECYCLE_TABLES, filter_decisions)):
                 table.drop(connection)
             connection.execute(schema.update().values(version=1))
     with Store(path):
@@ -185,7 +186,7 @@ def test_migrate_version_one_preserves_jobs(tmp_path):
     assert len(list_jobs(path)) == 3
     assert list_changes(path) == []
     with sqlite3.connect(path) as connection:
-        assert connection.execute("SELECT version FROM schema_version").fetchone() == (2,)
+        assert connection.execute("SELECT version FROM schema_version").fetchone() == (3,)
 
 
 def test_source_failure_rolls_back_events_and_presence(tmp_path, monkeypatch):

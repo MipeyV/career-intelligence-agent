@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Milestone 1.4 implemented.** Collection persists change events and reconciles missing, removed and reopened source postings. The CLI lists jobs with observed availability and exposes a paginated change history. The default watchlist contains 39 companies with live collection disabled.
+**Milestone 1.5 implemented.** Persistent collection records configurable discovery decisions alongside job history. Jobs and changes can be shown as JSON or terminal tables. Stored jobs can be refiltered after preference changes. The default watchlist contains 39 companies with live collection disabled.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -128,6 +128,26 @@ Jobs remain listed while another alias confirms presence. Reappearance restores 
 
 The first persistent collection upgrades a version 1 database to version 2 transactionally. Existing postings and evidence are preserved. Existing aliases acquire availability evidence when observed again, and historical revisions receive no backfilled events. Back up existing databases before upgrading.
 
+## Filter and review opportunities
+
+```text
+uv run --locked --offline career-intelligence jobs refilter --config conf/settings.yml
+uv run --locked --offline career-intelligence jobs list --config conf/settings.yml --decision keep,review --format table
+uv run --locked --offline career-intelligence changes list --config conf/settings.yml --format table
+```
+
+Persistent collection evaluates current stored jobs using the linked profile and filter policy. Role aliases, location aliases and excluded title seniorities are configured under `filters` in settings. Roles, ordered location preferences and compensation targets come from the profile. Text matching uses complete word sequences and preserves matched evidence.
+
+`keep` identifies opportunities matching the discovery preferences. `review` preserves ambiguous roles or locations and requirements needing interpretation. `exclude` requires a configured incompatible title seniority or an explicitly comparable employer-disclosed total compensation range below the configured floor. A missing junior label never causes exclusion. These decisions support discovery. Comprehensive eligibility and semantic matching follow in Phase 2.
+
+The optional compensation filter uses the fallback threshold when present, otherwise the target threshold. Comparison requires `kind: total_compensation`, `period: annual`, the profile currency, `provenance: employer_disclosed`, a source URL and a source date. Undisclosed pay, base pay alone, estimates, different currencies and ambiguous ranges remain for review when pay filtering is enabled.
+
+JSON includes the decision, configuration hash, filter version, location rank and evidence-bearing reason codes. Table output includes decisions, reason codes and official application links. Location rank follows profile preference order. Decision selection happens before pagination. JSON remains the default format.
+
+Changing the profile or policy creates a different configuration hash. Existing decisions remain auditable. Jobs without a decision for the current revision/configuration show as pending. Selecting decisions requires `jobs refilter` when any current decisions are missing or stale, so unseen jobs are surfaced explicitly.
+
+Schema migration 3 adds the decision table while preserving existing jobs, revisions and events. Persistent collection or `jobs refilter` upgrades an existing schema 1 or 2 database under the writer lock. Back up an existing database before upgrading.
+
 ## Verification
 
 Run the same checks used by CI:
@@ -156,4 +176,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.5, conservative filtering and CLI usability**.
+Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.6, end-to-end evaluation and operational handoff**.

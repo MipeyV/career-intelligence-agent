@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.4 provide configuration validation, collection, SQLite persistence and lifecycle reconciliation. Filtering and later phases below describe design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.5 provide configuration, collection, persistence, lifecycle reconciliation and deterministic filtering. Evaluation and later phases below describe design targets.
 
 ## 1. Design and scope
 
@@ -148,6 +148,10 @@ Milestone 1.4 persists these transitions in the source transaction. Event unique
 Event keys include stable job/source identity, transition/revision sequence, and event type. Replay cannot recreate the same committed transition. Later notifications use a transactional outbox keyed by event, candidate, channel, and delivery kind; external delivery is at-least-once with deduplication, not an unsupported exactly-once guarantee.
 
 ## 5. Deterministic filtering
+
+Milestone 1.5 implements pure rule evaluation in `filtering.py` and persists results separately in the migration 3 `filter_decisions` table. Its key contains job ID, immutable revision number and a hash of the profile, filter policy and evaluator version. Refiltering changes decision records without altering source observations, job revisions or change events.
+
+Role/location matching uses word sequences, configured alias groups and exact evidence spans. Unknown or ambiguous facts route to review. Configured title seniorities and attributable comparable annual total compensation can exclude. Comprehensive eligibility interpretation stays in Phase 2. Listing joins decisions for the current configuration, applies decision selection before pagination and orders known locations by profile preference. Table rendering removes control characters from external content.
 
 Return `keep`, `review`, or `exclude`, with reason codes, matched text, and configuration version. These are discovery decisions, not full eligibility assessments or hiring probabilities.
 

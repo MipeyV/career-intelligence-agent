@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestone 1.1 was merged in PR #1. Milestones 1.2 and 1.3 implement Greenhouse collection and SQLite persistence on their dedicated branches, pending PR review.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.4 were merged through PRs #1-#4. Milestone 1.5 adds deterministic filtering on its dedicated branch for review.
 
 ## Branches, reviews and CI/CD
 
@@ -72,6 +72,10 @@ Deliver:
 Exit check: controlled snapshots and a fake clock cover unchanged, title/description/deadline/pay changes, single omission, two complete omissions over the grace period, reappearance, HTTP failure, partial responses, anomalous empty results, disabled sources, changed scope, and aliases across multiple sources. Failed/partial runs reset the omission streak and never advance removal. No job is removed while another alias confirms presence. Replay produces zero duplicate events, including status-only reappearance.
 
 ### 1.5: conservative filters and usable CLI
+
+Implemented on `feat/phase-1-5-filtering`. Schema migration 3 stores versioned evidence-bearing decisions. Persistent collection evaluates stored jobs, and `jobs refilter` refreshes decisions after preference changes. CLI job/history listings support JSON and terminal tables, with decision selection and location ordering before pagination.
+
+Local verification on 2026-11-27 passed 155 tests, Ruff checks, source/wheel builds and isolated wheel installation on Windows/Python 3.12.14. The milestone PR provides the hosted Windows/Linux CI results.
 
 Deliver:
 

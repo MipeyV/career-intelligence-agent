@@ -14,6 +14,7 @@ from sqlalchemy import (
     JSON,
     Column,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
     MetaData,
     String,
@@ -28,7 +29,8 @@ from sqlalchemy import (
 from sqlalchemy.exc import SQLAlchemyError
 
 from career_intelligence.collection import CollectionPreview, Posting
-from career_intelligence.config import ReconciliationPolicy
+from career_intelligence.config import CandidateProfile, FilterPolicy, ReconciliationPolicy
+from career_intelligence.filtering import configuration_hash, evaluate
 
 metadata = MetaData()
 schema = Table("schema_version", metadata, Column("version", Integer, primary_key=True))
@@ -123,6 +125,19 @@ scopes = Table(
     Column("policy_hash", String, nullable=False),
 )
 LIFECYCLE_TABLES = (changes, presence, scopes)
+filter_decisions = Table(
+    "filter_decisions",
+    metadata,
+    Column("job_id", String, primary_key=True),
+    Column("revision", Integer, primary_key=True),
+    Column("config_hash", String, primary_key=True),
+    Column("decision", String, nullable=False),
+    Column("location_rank", Integer),
+    Column("details", JSON, nullable=False),
+    Column("evaluated_at", String, nullable=False),
+    ForeignKeyConstraint(["job_id", "revision"], ["job_revisions.job_id", "job_revisions.number"]),
+)
+SCHEMA_VERSION = 3
 
 
 class StorageError(RuntimeError):
@@ -230,7 +245,7 @@ def _engine(path: Path, *, readonly: bool = False):
 
 
 def _check_schema(connection):
-    if list(connection.scalars(select(schema.c.version))) != [2]:
+    if list(connection.scalars(select(schema.c.version))) != [SCHEMA_VERSION]:
         raise StorageError("Unsupported database schema version")
 
 
@@ -259,6 +274,11 @@ class Store:
                         for table in LIFECYCLE_TABLES:
                             table.create(connection)
                         connection.execute(schema.update().values(version=2))
+                        version = [2]
+                        tables = inspect(connection).get_table_names()
+                    if version == [2]:
+                        filter_decisions.create(connection)
+                        connection.execute(schema.update().values(version=SCHEMA_VERSION))
                         tables = inspect(connection).get_table_names()
                     _check_schema(connection)
                     if not set(metadata.tables).issubset(tables):
@@ -266,7 +286,7 @@ class Store:
                 else:
                     # Initial numbered migration, applied only to an empty database.
                     metadata.create_all(connection)
-                    connection.execute(schema.insert().values(version=2))
+                    connection.execute(schema.insert().values(version=SCHEMA_VERSION))
                 connection.execute(
                     runs.update().where(runs.c.status == "running").values(status="interrupted")
                 )
@@ -539,6 +559,55 @@ class Store:
             )
         )
 
+    def refilter(self, profile: CandidateProfile, policy: FilterPolicy) -> dict:
+        config_hash = configuration_hash(profile, policy)
+        counts = {"keep": 0, "review": 0, "exclude": 0}
+        with self.engine.begin() as connection:
+            rows = (
+                connection.execute(
+                    select(
+                        jobs.c.id,
+                        jobs.c.revision,
+                        revisions.c.payload,
+                    ).join(
+                        revisions,
+                        (jobs.c.id == revisions.c.job_id) & (jobs.c.revision == revisions.c.number),
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            for row in rows:
+                existing = (
+                    connection.execute(
+                        select(filter_decisions).where(
+                            (filter_decisions.c.job_id == row["id"])
+                            & (filter_decisions.c.revision == row["revision"])
+                            & (filter_decisions.c.config_hash == config_hash)
+                        )
+                    )
+                    .mappings()
+                    .first()
+                )
+                if existing:
+                    counts[existing["decision"]] += 1
+                    continue
+                post = Posting.model_validate_json(json.dumps({**row["payload"], "raw_record": {}}))
+                decision = evaluate(post, profile, policy)
+                counts[decision.decision] += 1
+                connection.execute(
+                    filter_decisions.insert().values(
+                        job_id=row["id"],
+                        revision=row["revision"],
+                        config_hash=config_hash,
+                        decision=decision.decision,
+                        location_rank=decision.location_rank,
+                        details=decision.model_dump(mode="json"),
+                        evaluated_at=datetime.now(UTC).isoformat(),
+                    )
+                )
+        return {"config_hash": config_hash, "counts": counts, "job_count": sum(counts.values())}
+
     def _emit(
         self,
         connection,
@@ -698,7 +767,14 @@ class Store:
             )
 
 
-def list_jobs(path: Path, *, limit: int = 100, offset: int = 0) -> list[dict]:
+def list_jobs(
+    path: Path,
+    *,
+    limit: int = 100,
+    offset: int = 0,
+    config_hash: str | None = None,
+    decisions: set[str] | None = None,
+) -> list[dict]:
     if limit < 1 or offset < 0:
         raise StorageError("Job limit must be positive and offset nonnegative")
     if not path.is_file():
@@ -707,13 +783,42 @@ def list_jobs(path: Path, *, limit: int = 100, offset: int = 0) -> list[dict]:
     try:
         with engine.connect() as connection:
             _check_schema(connection)
+            if decisions and (not config_hash or not decisions <= {"keep", "review", "exclude"}):
+                raise StorageError(
+                    "Decision filtering requires a current configuration and valid labels"
+                )
             statement = (
-                select(jobs, revisions.c.payload)
+                select(
+                    jobs, revisions.c.payload, filter_decisions.c.details.label("filter_decision")
+                )
+                .select_from(jobs)
                 .join(
                     revisions,
                     (jobs.c.id == revisions.c.job_id) & (jobs.c.revision == revisions.c.number),
                 )
-                .order_by(jobs.c.first_seen, jobs.c.id)
+                .outerjoin(
+                    filter_decisions,
+                    (filter_decisions.c.job_id == jobs.c.id)
+                    & (filter_decisions.c.revision == jobs.c.revision)
+                    & (filter_decisions.c.config_hash == config_hash),
+                )
+            )
+            if decisions:
+                pending = connection.execute(
+                    statement.where(filter_decisions.c.job_id.is_(None)).limit(1)
+                ).first()
+                if pending:
+                    raise StorageError(
+                        "Filter decisions are missing or stale. Run jobs refilter first"
+                    )
+                statement = statement.where(filter_decisions.c.decision.in_(decisions))
+            statement = (
+                statement.order_by(
+                    filter_decisions.c.location_rank.is_(None),
+                    filter_decisions.c.location_rank,
+                    jobs.c.first_seen,
+                    jobs.c.id,
+                )
                 .limit(limit)
                 .offset(offset)
             )
