@@ -2,7 +2,7 @@
 
 ## Scope and workflow
 
-- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is approved. Milestones 1.1-1.6 provide the deterministic MVP, recovery commands and evaluation. Later phases remain plans.
+- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is merged. Milestone 2.1a implements the offline extraction contract without adding dependencies or enabling a live model. The remaining provider and later-phase work stays planned.
 - The user approved the Phase 1 scope and dependency set on 2026-11-25. Implement one independently testable milestone at a time; do not re-request approval for routine work or dependencies already approved within Phase 1.
 - The user authorized the initial documentation baseline to be committed and pushed directly to `main`. After that baseline, create a dedicated branch before making each increment and open a PR targeting `main`; do not push subsequent changes directly to `main`. Begin with `feat/phase-1-1-bootstrap`.
 - Maintain the GitHub Actions workflow introduced with milestone 1.1, covering locked installation, Ruff lint/format, offline Pytest on Windows and Linux, package-build and isolated wheel validation. Extend CI as functionality grows; add delivery automation at Phase 4 when the release/deployment target is defined.
@@ -43,3 +43,4 @@
 - Keep source contracts linked to official documentation. Verify board tokens and live access separately, with explicit opt-in smoke checks; never silently fall back to scraping.
 - Record checks run, their outcomes, remaining assumptions and material limitations at each milestone. Do not broaden work beyond the agreed scope to hide an unresolved dependency or design question.
 - For evaluation or operational changes, run `uv run --locked --offline python scripts/evaluate.py` and the backup/restore integration tests. Keep synthetic and real-source cases distinguishable. Report annotation provenance and pending human review. Avoid tuning labels to obtain a better score.
+- Extraction outputs must stay separate from source facts and candidate profiles. Reject an entire response with unsupported evidence. Preserve null versus explicitly empty collections, and record the selected revision/fingerprint and prompt version. A matching quote establishes textual presence, not semantic correctness. The fixture adapter is not a live-model quality check. Review significant provider dependencies before adding them.

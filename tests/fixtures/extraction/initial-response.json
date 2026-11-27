@@ -1,0 +1,22 @@
+{
+  "responsibilities": {
+    "items": [
+      {"text": "Build models & tools.", "evidence": {"field": "description", "start": 0, "end": 21}, "confidence": null}
+    ],
+    "empty_evidence": null
+  },
+  "required_qualifications": null,
+  "preferred_qualifications": null,
+  "required_experience": null,
+  "technical_skills": null,
+  "academic_requirements": null,
+  "language_requirements": null,
+  "work_authorization": null,
+  "seniority": null,
+  "remote_policy": null,
+  "employment_type": null,
+  "publication_date": null,
+  "application_deadline": null,
+  "expected_start_date": null,
+  "compensation": null
+}
