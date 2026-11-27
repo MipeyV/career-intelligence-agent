@@ -45,6 +45,10 @@ Exit check: mocked transport verifies URL/query construction, mapping, timeouts,
 
 ### 1.3: durable storage and deterministic identity
 
+Implemented on `feat/phase-1-3-storage`, based on the pending 1.2 Greenhouse branch. The CLI supports optional persistence and paginated JSON listing. Tests cover restart/replay, exact source IDs, conservative URL aliases, collision records, immutable revisions, source rollback/retry, foreign keys and competing processes. Milestone 1.2 must be merged before reviewing the 1.3-only diff against main.
+
+Local verification on 2026-11-27 passed 107 tests on Windows with CPython 3.12.14, Ruff checks, source/wheel builds and fresh-environment wheel installation. Tests ran in a separate ignored `.venv-storage` environment because Windows blocked the existing virtual-environment launcher. Hosted Windows/Linux CI remains to be checked on the PR.
+
 Deliver:
 
 - SQLAlchemy tables and initial schema version, transactional ingestion, run/source outcomes, and a tested exclusive-writer mechanism.

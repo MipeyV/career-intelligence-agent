@@ -23,6 +23,9 @@ payloads/
 *.sqlite-*
 *.sqlite3
 *.sqlite3-*
+*.sqlite3.lock
+*.sqlite.lock
+*.db.lock
 *.log
 
 # Python and tooling

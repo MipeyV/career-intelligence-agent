@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Milestone 1.2 implemented.** The CLI validates configuration and previews normalized Greenhouse job postings from an offline fixture or from explicitly enabled live sources. The default watchlist contains 39 companies with live collection disabled. SQLite persistence and change detection follow in milestones 1.3 and 1.4.
+**Milestone 1.3 implemented.** Collection can persist normalized postings, source evidence and immutable revision history in SQLite. The CLI lists the latest stored jobs as JSON. The default watchlist contains 39 companies with live collection disabled. Availability reconciliation follows in milestone 1.4.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -98,6 +98,21 @@ Omitting `--source` processes every enabled source sequentially. The connector u
 
 The preview writes normalized records and a status per source to stdout. Structured issue summaries go to stderr. A complete preview exits with `0`. A partial preview or a mix of successful and failed sources exits with `3`. An entirely failed preview exits with `1`. Invalid arguments or configuration exit with `2`. The preview keeps evidence in memory and creates no database.
 
+## Persist and inspect opportunities
+
+Add `--persist` to collection to save observations to `database_path` from the settings file. The flag works with both fixture replay and live sources.
+
+```text
+uv run --locked --offline career-intelligence collect --config conf/settings.yml --fixture tests/fixtures/greenhouse/initial.json --persist
+uv run --locked --offline career-intelligence jobs list --config conf/settings.yml --limit 100 --offset 0
+```
+
+The job list contains stable internal IDs, first/last observation times, revision numbers and the latest normalized payload. Raw source records are retained in the database for audit. Source identifiers resolve repeated postings, and conservative URL aliases connect postings across sources when company identity agrees. Identifying URL query parameters are preserved. Content changes create immutable revisions, including a return to previously observed content.
+
+Each source commits in its own transaction. A source storage failure rolls back its observations and is recorded separately while other sources continue. Storage errors exit with `1`. A writer lock spans collection and persistence. Another writer fails with a diagnostic, and the operating system releases the lock after a process exits. Keep the persistent lock sidecar beside its database.
+
+Back up a local database after collection has exited using a normal file copy. Keep private databases and backups under the ignored `data/` directory. An unsupported or unrecognized schema is refused. Read-only listing requires an existing initialized database. Retention and purge controls are planned for operational handoff in milestone 1.6.
+
 ## Verification
 
 Run the same checks used by CI:
@@ -126,4 +141,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.3, durable storage and deterministic identity**.
+Delivery automation follows in Phase 4 with Docker and a separately chosen release target. The next milestone is **1.4, safe lifecycle and change events**.

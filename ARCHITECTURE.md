@@ -101,6 +101,10 @@ Every interpreted fact later adds evidence: revision ID, source field or exact d
 
 ## 4. Persistence, identity, and changes
 
+Milestone 1.3 uses SQLAlchemy Core tables in `storage.py`. Initial schema version 1 is created transactionally on an empty database. Source snapshots and raw evidence are retained with a content key for replay detection. A cross-platform OS file lock spans the persistent collection operation. Reads use SQLite's read-only mode. Unexpectedly interrupted collection runs are marked on the next writer startup.
+
+Implemented tables cover collection runs, source outcomes, jobs, source aliases, immutable revisions and reviewable identity collisions. Change events and filter decisions are introduced in milestones 1.4 and 1.5. Stored timestamps use UTC ISO text. A deterministic versioned SHA-256 fingerprint excludes observation metadata and source identity, preserves meaningful content, and sorts explicitly unordered requirement lists.
+
 Start with these tables, with schema versioning from the first migration:
 
 | Table | Purpose and important constraint |
