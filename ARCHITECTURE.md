@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.3 provide configuration validation, collection and SQLite persistence. Availability reconciliation and later phases below describe design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.4 provide configuration validation, collection, SQLite persistence and lifecycle reconciliation. Filtering and later phases below describe design targets.
 
 ## 1. Design and scope
 
@@ -103,7 +103,7 @@ Every interpreted fact later adds evidence: revision ID, source field or exact d
 
 Milestone 1.3 uses SQLAlchemy Core tables in `storage.py`. Initial schema version 1 is created transactionally on an empty database. Source snapshots and raw evidence are retained with a content key for replay detection. A cross-platform OS file lock spans the persistent collection operation. Reads use SQLite's read-only mode. Unexpectedly interrupted collection runs are marked on the next writer startup.
 
-Implemented tables cover collection runs, source outcomes, jobs, source aliases, immutable revisions and reviewable identity collisions. Change events and filter decisions are introduced in milestones 1.4 and 1.5. Stored timestamps use UTC ISO text. A deterministic versioned SHA-256 fingerprint excludes observation metadata and source identity, preserves meaningful content, and sorts explicitly unordered requirement lists.
+Implemented tables cover collection runs, source outcomes, jobs, source aliases, immutable revisions and reviewable identity collisions. Migration 2 adds change events, source presence and reconciliation scope state. Filter decisions follow in milestone 1.5. Stored timestamps use UTC ISO text. A deterministic versioned SHA-256 fingerprint excludes observation metadata and source identity, preserves meaningful content, and sorts explicitly unordered requirement lists.
 
 Start with these tables, with schema versioning from the first migration:
 
@@ -133,6 +133,8 @@ URL canonicalization lowercases scheme/host, removes fragments and explicitly re
 Fingerprint versioned, canonical JSON of meaningful normalized fields using SHA-256. Include title, locations, description, eligibility, dates, and compensation when present; exclude collection timestamps, ordering noise, and provider update timestamps alone. Sort only semantically unordered collections. Preserve meaningful text and numerical changes. On A -> B -> A content changes, create a new revision for each transition; historical content hashes are not globally unique revision identifiers.
 
 ### Lifecycle rules
+
+Milestone 1.4 persists these transitions in the source transaction. Event uniqueness and snapshot replay detection prevent repeated delivery candidates. Scope state is keyed by source key and provider scope. Policy changes reset omission evidence. A later distinct complete poll with identical IDs confirms an empty/depleted snapshot, after which normal absence counting applies. Partial/failed polls also clear anomaly confirmation. Availability is aggregated over source aliases, while historical payloads remain immutable. Migration from schema 1 preserves data and establishes presence on subsequent observations.
 
 - First observation: `new` event; say **newly discovered**, not necessarily newly published.
 - Meaningful fingerprint change: new revision and `updated` event containing field differences. Unchanged polls only refresh last-seen observations.

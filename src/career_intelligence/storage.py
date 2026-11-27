@@ -5,7 +5,7 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
@@ -21,12 +21,14 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
     event,
+    func,
     inspect,
     select,
 )
 from sqlalchemy.exc import SQLAlchemyError
 
 from career_intelligence.collection import CollectionPreview, Posting
+from career_intelligence.config import ReconciliationPolicy
 
 metadata = MetaData()
 schema = Table("schema_version", metadata, Column("version", Integer, primary_key=True))
@@ -86,6 +88,41 @@ collisions = Table(
     Column("alias_id", ForeignKey("source_postings.id"), primary_key=True),
     Column("candidate_job_ids", JSON, nullable=False),
 )
+changes = Table(
+    "change_events",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("event_key", String, nullable=False, unique=True),
+    Column("run_id", ForeignKey("collection_runs.id"), nullable=False),
+    Column("source_run_id", ForeignKey("source_runs.id"), nullable=False),
+    Column("job_id", ForeignKey("jobs.id"), nullable=False),
+    Column("alias_id", ForeignKey("source_postings.id")),
+    Column("kind", String, nullable=False),
+    Column("observed_at", String, nullable=False),
+    Column("revision", Integer),
+    Column("fields", JSON, nullable=False),
+)
+presence = Table(
+    "source_presence",
+    metadata,
+    Column("alias_id", ForeignKey("source_postings.id"), primary_key=True),
+    Column("source_key", String, nullable=False),
+    Column("state", String, nullable=False),
+    Column("misses", Integer, nullable=False),
+    Column("absent_since", String),
+    Column("checked_at", String, nullable=False),
+)
+scopes = Table(
+    "reconciliation_scopes",
+    metadata,
+    Column("source_key", String, primary_key=True),
+    Column("scope_key", String, primary_key=True),
+    Column("checked_at", String, nullable=False),
+    Column("total", Integer, nullable=False),
+    Column("anomaly_signature", String),
+    Column("policy_hash", String, nullable=False),
+)
+LIFECYCLE_TABLES = (changes, presence, scopes)
 
 
 class StorageError(RuntimeError):
@@ -193,7 +230,7 @@ def _engine(path: Path, *, readonly: bool = False):
 
 
 def _check_schema(connection):
-    if list(connection.scalars(select(schema.c.version))) != [1]:
+    if list(connection.scalars(select(schema.c.version))) != [2]:
         raise StorageError("Unsupported database schema version")
 
 
@@ -216,13 +253,20 @@ class Store:
                 if tables:
                     if "schema_version" not in tables:
                         raise StorageError("Existing database has no recognized schema version")
+                    version = list(connection.scalars(select(schema.c.version)))
+                    if version == [1]:
+                        # Migration 2 adds lifecycle history without changing existing evidence.
+                        for table in LIFECYCLE_TABLES:
+                            table.create(connection)
+                        connection.execute(schema.update().values(version=2))
+                        tables = inspect(connection).get_table_names()
                     _check_schema(connection)
                     if not set(metadata.tables).issubset(tables):
                         raise StorageError("Database schema is incomplete")
                 else:
                     # Initial numbered migration, applied only to an empty database.
                     metadata.create_all(connection)
-                    connection.execute(schema.insert().values(version=1))
+                    connection.execute(schema.insert().values(version=2))
                 connection.execute(
                     runs.update().where(runs.c.status == "running").values(status="interrupted")
                 )
@@ -236,7 +280,12 @@ class Store:
             self.engine.dispose()
         self.lock.__exit__(*args)
 
-    def ingest(self, preview: CollectionPreview) -> dict:
+    def ingest(
+        self,
+        preview: CollectionPreview,
+        policy: ReconciliationPolicy | None = None,
+    ) -> dict:
+        policy = policy or ReconciliationPolicy()
         run_id = str(uuid4())
         with self.engine.begin() as connection:
             connection.execute(
@@ -288,6 +337,13 @@ class Store:
                     )
                     if snapshot.status == "failed" and snapshot.records:
                         raise StorageError("Failed snapshots cannot contain positive observations")
+                    last_check = connection.scalar(
+                        select(scopes.c.checked_at).where(
+                            (scopes.c.source_key == snapshot.source_key)
+                            & (scopes.c.scope_key == snapshot.scope_key)
+                        )
+                    )
+                    stale = last_check and _timestamp(snapshot.started_at) < last_check
                     identities = set()
                     for post in snapshot.records:
                         identity = (post.source_provider, post.source_scope, post.source_post_id)
@@ -296,7 +352,9 @@ class Store:
                         ):
                             raise StorageError("Inconsistent source snapshot identity")
                         identities.add(identity)
-                        self._save_post(connection, post, source_run_id)
+                        if not stale:
+                            self._save_post(connection, post, source_run_id)
+                    self._reconcile(connection, snapshot, source_run_id, policy)
                 results.append({"source_key": snapshot.source_key, "status": snapshot.status})
             except (SQLAlchemyError, StorageError):
                 with self.engine.begin() as connection:
@@ -317,11 +375,25 @@ class Store:
                             details={"code": "source_transaction_failed"},
                         )
                     )
+                    self._reconcile(
+                        connection,
+                        snapshot.model_copy(update={"status": "failed", "records": []}),
+                        source_run_id,
+                        policy,
+                    )
                 results.append({"source_key": snapshot.source_key, "status": "storage_failed"})
         status = "failed" if any(r["status"] == "storage_failed" for r in results) else "finished"
         with self.engine.begin() as connection:
             connection.execute(runs.update().where(runs.c.id == run_id).values(status=status))
-        return {"run_id": run_id, "status": status, "sources": results}
+            change_count = connection.scalar(
+                select(func.count()).select_from(changes).where(changes.c.run_id == run_id)
+            )
+        return {
+            "run_id": run_id,
+            "status": status,
+            "sources": results,
+            "change_count": change_count,
+        }
 
     def _save_post(self, connection, post: Posting, source_run_id: str):
         identity = (
@@ -404,6 +476,30 @@ class Store:
         )
         if alias["fingerprint"] != digest and current_digest != digest and seen >= job["last_seen"]:
             number = job["revision"] + 1
+            previous_payload = (
+                connection.scalar(
+                    select(revisions.c.payload).where(
+                        (revisions.c.job_id == job["id"]) & (revisions.c.number == job["revision"])
+                    )
+                )
+                or {}
+            )
+            payload = post.model_dump(mode="json")
+            differences = {
+                key: {"before": previous_payload.get(key), "after": payload.get(key)}
+                for key in payload
+                if key
+                not in {
+                    "observed_at",
+                    "source_updated_at",
+                    "source_url",
+                    "source_provider",
+                    "source_scope",
+                    "source_post_id",
+                    "source_status",
+                }
+                and previous_payload.get(key) != payload.get(key)
+            }
             connection.execute(
                 revisions.insert().values(
                     job_id=job["id"],
@@ -415,6 +511,16 @@ class Store:
                 )
             )
             connection.execute(jobs.update().where(jobs.c.id == job["id"]).values(revision=number))
+            self._emit(
+                connection,
+                source_run_id,
+                job["id"],
+                alias["id"],
+                "new" if number == 1 else "updated",
+                seen,
+                differences,
+                number,
+            )
         connection.execute(
             jobs.update()
             .where(jobs.c.id == job["id"])
@@ -432,6 +538,164 @@ class Store:
                 canonical_url=url,
             )
         )
+
+    def _emit(
+        self,
+        connection,
+        source_run_id,
+        job_id,
+        alias_id,
+        kind,
+        seen,
+        fields=None,
+        revision=None,
+    ):
+        run_id = connection.scalar(
+            select(source_runs.c.run_id).where(source_runs.c.id == source_run_id)
+        )
+        connection.execute(
+            changes.insert().values(
+                event_key=f"{source_run_id}:{job_id}:{alias_id}:{kind}:{revision}",
+                run_id=run_id,
+                source_run_id=source_run_id,
+                job_id=job_id,
+                alias_id=alias_id,
+                kind=kind,
+                observed_at=seen,
+                fields=fields or {},
+                revision=revision,
+            )
+        )
+
+    def _reconcile(self, connection, snapshot, source_run_id, policy):
+        seen = _timestamp(snapshot.completed_at)
+        started = _timestamp(snapshot.started_at)
+        if started > seen:
+            raise StorageError("Collection completion precedes its start")
+        scope_filter = (scopes.c.source_key == snapshot.source_key) & (
+            scopes.c.scope_key == snapshot.scope_key
+        )
+        scope = connection.execute(select(scopes).where(scope_filter)).mappings().first()
+        # Older or simultaneous polls cannot contribute another omission or erase a cooldown.
+        if scope and started <= scope["checked_at"]:
+            return
+        scope_parts = snapshot.scope_key.split(":", 1)
+        if len(scope_parts) != 2:
+            raise StorageError("Invalid collection scope")
+        provider, board = scope_parts
+        tracked = (
+            connection.execute(
+                select(
+                    aliases,
+                    presence.c.source_key,
+                    presence.c.state,
+                    presence.c.misses,
+                    presence.c.absent_since,
+                    presence.c.checked_at,
+                )
+                .outerjoin(presence)
+                .where((aliases.c.provider == provider) & (aliases.c.scope == board))
+            )
+            .mappings()
+            .all()
+        )
+        observed = {post.source_post_id for post in snapshot.records}
+        policy_hash = _digest(policy.model_dump())
+        reset = scope is not None and scope["policy_hash"] != policy_hash
+        previous_total = scope["total"] if scope else len(observed)
+        anomalous = snapshot.status == "complete" and (
+            not observed
+            or (
+                previous_total > 0
+                and (previous_total - len(observed)) / previous_total >= policy.depletion_fraction
+            )
+        )
+        signature = _digest(sorted(observed)) if anomalous else None
+        confirmed = (
+            anomalous
+            and scope is not None
+            and not reset
+            and scope["anomaly_signature"] == signature
+        )
+        usable = snapshot.status == "complete" and (not anomalous or confirmed)
+        for row in tracked:
+            state_filter = presence.c.alias_id == row["id"]
+            if row["post_id"] in observed:
+                if row["checked_at"] and seen <= row["checked_at"]:
+                    continue
+                if row["state"] in {"missing", "removed_from_source"}:
+                    self._emit(
+                        connection,
+                        source_run_id,
+                        row["job_id"],
+                        row["id"],
+                        "reopened" if row["state"] == "removed_from_source" else "returned",
+                        seen,
+                    )
+                values = dict(
+                    source_key=snapshot.source_key,
+                    state="listed",
+                    misses=0,
+                    absent_since=None,
+                    checked_at=seen,
+                )
+                if row["state"] is None:
+                    connection.execute(presence.insert().values(alias_id=row["id"], **values))
+                else:
+                    connection.execute(presence.update().where(state_filter).values(**values))
+                continue
+            if row["source_key"] != snapshot.source_key:
+                continue
+            if row["checked_at"] and started <= row["checked_at"]:
+                continue
+            if not usable or reset:
+                connection.execute(
+                    presence.update()
+                    .where(state_filter)
+                    .values(
+                        misses=0,
+                        absent_since=None,
+                        checked_at=seen,
+                    )
+                )
+                continue
+            misses = row["misses"] + 1
+            since = row["absent_since"] or seen
+            absent = datetime.fromisoformat(seen) - datetime.fromisoformat(since)
+            state = "missing"
+            if row["state"] == "removed_from_source" or (
+                misses >= policy.complete_omissions_required
+                and absent >= timedelta(hours=policy.minimum_absence_hours)
+            ):
+                state = "removed_from_source"
+            if state != row["state"]:
+                self._emit(connection, source_run_id, row["job_id"], row["id"], state, seen)
+            connection.execute(
+                presence.update()
+                .where(state_filter)
+                .values(
+                    state=state,
+                    misses=misses,
+                    absent_since=since,
+                    checked_at=seen,
+                )
+            )
+        values = dict(
+            checked_at=seen,
+            total=len(observed) if usable else previous_total,
+            anomaly_signature=signature if snapshot.status == "complete" else None,
+            policy_hash=policy_hash,
+        )
+        if scope:
+            connection.execute(scopes.update().where(scope_filter).values(**values))
+        else:
+            connection.execute(
+                scopes.insert().values(
+                    source_key=snapshot.source_key,
+                    scope_key=snapshot.scope_key,
+                    **values,
+                )
+            )
 
 
 def list_jobs(path: Path, *, limit: int = 100, offset: int = 0) -> list[dict]:
@@ -453,6 +717,50 @@ def list_jobs(path: Path, *, limit: int = 100, offset: int = 0) -> list[dict]:
                 .limit(limit)
                 .offset(offset)
             )
+            result = [dict(row) for row in connection.execute(statement).mappings()]
+            for row in result:
+                states = list(
+                    connection.scalars(
+                        select(presence.c.state)
+                        .select_from(aliases.outerjoin(presence))
+                        .where(aliases.c.job_id == row["id"])
+                    )
+                )
+                row["availability"] = (
+                    "listed"
+                    if "listed" in states
+                    else "removed_from_source"
+                    if states and all(state == "removed_from_source" for state in states)
+                    else "uncertain"
+                )
+            return result
+    finally:
+        engine.dispose()
+
+
+def list_changes(
+    path: Path, *, since_run: str | None = None, limit: int = 100, offset: int = 0
+) -> list[dict]:
+    if limit < 1 or offset < 0:
+        raise StorageError("Change limit must be positive and offset nonnegative")
+    if not path.is_file():
+        raise StorageError("Database does not exist. Run collect with --persist first")
+    engine = _engine(path.resolve(), readonly=True)
+    try:
+        with engine.connect() as connection:
+            _check_schema(connection)
+            statement = select(changes)
+            if since_run is not None:
+                # SQLite rowid orders committed run creation, including runs without events.
+                ids = (
+                    connection.exec_driver_sql("SELECT id FROM collection_runs ORDER BY rowid")
+                    .scalars()
+                    .all()
+                )
+                if since_run not in ids:
+                    raise StorageError("Unknown collection run ID")
+                statement = statement.where(changes.c.run_id.in_(ids[ids.index(since_run) + 1 :]))
+            statement = statement.order_by(changes.c.id).limit(limit).offset(offset)
             return [dict(row) for row in connection.execute(statement).mappings()]
     finally:
         engine.dispose()
