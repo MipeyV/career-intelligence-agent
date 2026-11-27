@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestone 1.1 was merged in PR #1. Milestone 1.2 implements Greenhouse collection and offline preview on its dedicated branch.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestone 1.1 was merged in PR #1. Milestones 1.2 and 1.3 implement Greenhouse collection and SQLite persistence on their dedicated branches, pending PR review.
 
 ## Branches, reviews and CI/CD
 

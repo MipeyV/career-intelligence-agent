@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1 and 1.2 provide configuration validation and a collection preview. Storage and later phases below describe design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.3 provide configuration validation, collection and SQLite persistence. Availability reconciliation and later phases below describe design targets.
 
 ## 1. Design and scope
 
