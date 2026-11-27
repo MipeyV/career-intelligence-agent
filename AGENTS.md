@@ -2,7 +2,7 @@
 
 ## Scope and workflow
 
-- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is approved; milestone 1.1 provides the package, configuration CLI and CI definition. Later milestones remain plans.
+- Read `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md` before implementation. Phase 1 is approved. Milestones 1.1-1.3 provide configuration, collection and storage. Later milestones remain plans.
 - The user approved the Phase 1 scope and dependency set on 2026-11-25. Implement one independently testable milestone at a time; do not re-request approval for routine work or dependencies already approved within Phase 1.
 - The user authorized the initial documentation baseline to be committed and pushed directly to `main`. After that baseline, create a dedicated branch before making each increment and open a PR targeting `main`; do not push subsequent changes directly to `main`. Begin with `feat/phase-1-1-bootstrap`.
 - Maintain the GitHub Actions workflow introduced with milestone 1.1, covering locked installation, Ruff lint/format, offline Pytest on Windows and Linux, package-build and isolated wheel validation. Extend CI as functionality grows; add delivery automation at Phase 4 when the release/deployment target is defined.

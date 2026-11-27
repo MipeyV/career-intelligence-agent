@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestone 1.1 was merged in PR #1. Milestone 1.2 implements Greenhouse collection and offline preview on its dedicated branch.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestone 1.1 was merged in PR #1. Milestones 1.2 and 1.3 implement Greenhouse collection and SQLite persistence on their dedicated branches, pending PR review.
 
 ## Branches, reviews and CI/CD
 
@@ -44,6 +44,10 @@ Deliver:
 Exit check: mocked transport verifies URL/query construction, mapping, timeouts, 429/Retry-After, selected 5xx retry, non-retryable errors, response limits, and complete/partial/failed classification. No fabricated salary, seniority, publication date, eligibility, or remote policy. One failed board does not suppress a successful board. A manually enabled, opt-in smoke check records a verified official board and the source-access review; offline tests remain the default.
 
 ### 1.3: durable storage and deterministic identity
+
+Implemented on `feat/phase-1-3-storage`, based on the pending 1.2 Greenhouse branch. The CLI supports optional persistence and paginated JSON listing. Tests cover restart/replay, exact source IDs, conservative URL aliases, collision records, immutable revisions, source rollback/retry, foreign keys and competing processes. Milestone 1.2 must be merged before reviewing the 1.3-only diff against main.
+
+Local verification on 2026-11-27 passed 107 tests on Windows with CPython 3.12.14, Ruff checks, source/wheel builds and fresh-environment wheel installation. Tests ran in a separate ignored `.venv-storage` environment because Windows blocked the existing virtual-environment launcher. Hosted Windows/Linux CI remains to be checked on the PR.
 
 Deliver:
 

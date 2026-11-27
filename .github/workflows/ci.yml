@@ -54,6 +54,10 @@ jobs:
       - run: uv run --locked --offline career-intelligence config validate --config conf/settings.yml
       - name: Preview a Greenhouse fixture
         run: uv run --locked --offline career-intelligence collect --config conf/settings.yml --fixture tests/fixtures/greenhouse/initial.json
+      - name: Persist a Greenhouse fixture
+        run: uv run --locked --offline career-intelligence collect --config conf/settings.yml --fixture tests/fixtures/greenhouse/initial.json --persist
+      - name: List persisted jobs
+        run: uv run --locked --offline career-intelligence jobs list --config conf/settings.yml
       - run: uv build --no-build-isolation --offline
       - name: Verify installed wheel in a fresh environment
         run: uv run --locked --offline python scripts/check_distribution.py

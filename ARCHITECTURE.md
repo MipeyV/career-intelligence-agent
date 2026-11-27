@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1 and 1.2 provide configuration validation and a collection preview. Storage and later phases below describe design targets.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.3 provide configuration validation, collection and SQLite persistence. Availability reconciliation and later phases below describe design targets.
 
 ## 1. Design and scope
 
@@ -100,6 +100,10 @@ Keep source HTML/raw JSON separately with acquisition time and payload hash. Der
 Every interpreted fact later adds evidence: revision ID, source field or exact description span, extraction method, and confidence. Candidate facts similarly reference profile fields. A structured extraction cannot silently overwrite source facts.
 
 ## 4. Persistence, identity, and changes
+
+Milestone 1.3 uses SQLAlchemy Core tables in `storage.py`. Initial schema version 1 is created transactionally on an empty database. Source snapshots and raw evidence are retained with a content key for replay detection. A cross-platform OS file lock spans the persistent collection operation. Reads use SQLite's read-only mode. Unexpectedly interrupted collection runs are marked on the next writer startup.
+
+Implemented tables cover collection runs, source outcomes, jobs, source aliases, immutable revisions and reviewable identity collisions. Change events and filter decisions are introduced in milestones 1.4 and 1.5. Stored timestamps use UTC ISO text. A deterministic versioned SHA-256 fingerprint excludes observation metadata and source identity, preserves meaningful content, and sorts explicitly unordered requirement lists.
 
 Start with these tables, with schema versioning from the first migration:
 
