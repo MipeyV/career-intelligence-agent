@@ -37,10 +37,21 @@ analysis and caching belong to the planned persistence work in Phase 2.5.
 ## What is validated
 
 The provider receives a fixed system instruction, the output JSON schema and a JSON
-object containing only the posting's `title`, `location` and `description`. Candidate
-profile/CV content, raw source records, application URLs, credentials and database IDs
+object containing the posting's `title`, `location`, `description` and derived
+`span_hints`. Candidate
+profile/CV content, raw source records, structured application URLs, credentials and database IDs
 are excluded from the provider request. Posting text is untrusted data. No executable
 tools are exposed and no returned links or instructions are followed.
+
+Prompt version `job-extraction-v2` adds at most `max_span_hints` exact quotation
+positions computed in deterministic code (default 64, configurable from 0 to 256).
+Hints include short whole fields and whitespace-delimited tokens, with quotations
+limited to 4096 characters. They are bounded aids for selecting positions, not a
+complete enumeration of possible phrases. The original source fields remain intact
+and authoritative. The model still has to choose the correct category and return
+matching evidence. Wrong offsets, altered quotations and wrong fields are rejected
+as before; no output is repaired automatically. Hints duplicate only source text,
+carry no candidate facts and count toward the input byte budget.
 
 The output schema has fixed fields for responsibilities, requirements, experience,
 skills, authorization, role conditions, dates and compensation wording. Every field
@@ -70,13 +81,14 @@ Settings accept an `extraction` section with the following defaults.
 
 ```yaml
 extraction:
+  max_span_hints: 64
   max_input_bytes: 65536
   max_output_bytes: 131072
   max_output_tokens: 4096
   timeout_seconds: 30
 ```
 
-Input bytes count the canonical ASCII-escaped JSON of the three posting fields,
+Input bytes count the canonical ASCII-escaped JSON of the three posting fields and hints,
 excluding the fixed prompt and schema. Oversized input is refused before a provider
 attempt, without truncating source evidence. The fixture reader reads at most the
 output byte limit plus one byte. Output is checked before JSON parsing. Token limits
@@ -169,11 +181,38 @@ listing remain available. Model identity records the configured tag, which can b
 mutable; no model digest, quality score or eligibility verdict is claimed.
 
 Offline tests exercise the real pinned LangChain/Ollama code with mock HTTP transport,
-including cancellation, safe failures and cleanup. No live inference, model quality,
-hardware capacity or installed-model compatibility has been validated in this increment.
-A live check is a separate explicit opt-in using synthetic job content. Remote providers,
+including cancellation, safe failures and cleanup. The separate
+[local smoke record](LOCAL-SMOKE.md) documents one successful short synthetic case
+and two failed trials. It does not establish general model quality or hardware capacity.
+A live check is a separate explicit opt-in using synthetic job content. The reproducible
+command below never reads a private settings file or an existing database:
+
+```text
+uv run --locked --offline --extra ollama python scripts/smoke_ollama.py --live --model YOUR_LOCAL_MODEL --timeout 90
+```
+
+`--live` and an installed local model name are mandatory. The fixed public fixture
+contains the description `Python required.`. The script persists it to a temporary
+SQLite database, runs one provider attempt and compares database bytes afterward.
+It uses a 4096-token context, requests at most 1024 generated tokens and accepts a
+positive timeout of at most 120 seconds. There are no retries or model downloads.
+The deadline covers the provider's cooperative preflight/inference operation, not
+Python startup or proof that the server stopped computing after cancellation.
+
+The JSON summary contains status, duration, hashes, attempt/fact counts, HTTP route/status
+and time-to-headers diagnostics, and invariant
+checks, without the raw response or extracted quotations. Exit 0 requires complete
+validation, at least one grounded fact, preservation of unknown fields and unchanged
+SQLite bytes. In this tiny case only technical skills and required qualifications
+are disclosed; every other extraction field must remain null. An all-null response
+or a grounded quote put into an unsupported category fails the smoke check even if
+schema/span validation completed. The temporary database is removed afterward. Keep
+optional runtime summaries under ignored `data/` paths. Default tests validate this
+command with mock providers; CI never runs `--live`.
+
+Remote providers,
 candidate-profile transmission, eligibility, scoring and orchestration stay in later
 milestones. See the official
 [LangChain Ollama integration](https://reference.langchain.com/python/langchain-ollama)
 and [structured output reference](https://reference.langchain.com/python/langchain-ollama/chat_models/ChatOllama/with_structured_output)
-for the planned adapter contract.
+for the adapter contract.

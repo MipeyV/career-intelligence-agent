@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a were merged through PRs #1-#7, with passing Windows/Ubuntu CI. Milestone 2.1b implements the optional Ollama adapter, whose dependency set the user approved on 2026-11-27. No model download or live inference was authorized or run in this increment.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a/b were merged through PRs #1-#8, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. The following increment adds explicit synthetic live validation and deterministic span hints; no model download is included.
 
 ## Branches, reviews and CI/CD
 
@@ -170,6 +170,14 @@ Implemented on `feat/phase-2-1-ollama`: the approved optional extra pins LangCha
 The base installation and optional extra have separate Windows/Ubuntu CI matrix entries, including isolated wheel checks. Tests use the real pinned LangChain/Ollama implementation with mock transport and do not open network connections. See [the dependency review](docs/OLLAMA-DEPENDENCIES.md) and [local-provider guide](docs/EXTRACTION.md). Actual installed-model/hardware compatibility and semantic extraction quality remain pending a separate opt-in synthetic live check; model downloads and remote providers are not enabled.
 
 Local verification on 2026-11-27 passed 244 tests with the extra, plus 219 base tests with one intentionally skipped optional integration module. Ruff lint/format, source/wheel builds and isolated base/extra wheel checks passed on Windows/Python 3.12.14. The original synthetic benchmark and documentation link/fence checks passed; all pre-existing locked versions were preserved. Hosted CI is checked on the increment PR. No live model inference was performed.
+
+### 2.1c: bounded synthetic live validation and span hints
+
+Implemented on `test/phase-2-1-live-smoke`. The opt-in script uses a fixed synthetic posting and disposable SQLite, emits only safe summary/HTTP timing diagnostics, and makes one provider attempt per invocation with a maximum 120-second client deadline. Default tests mock the provider and CI runs help without inference. Prompt v2 adds at most 64 configurable source-span hints by default, within the existing input-byte budget; evidence validation remains exact and never repairs output.
+
+On 2026-11-28, qwen3:8b timed out at 90 seconds, and qwen2.5-coder:7b returned unsupported evidence under prompt v1. A subsequent qwen2.5-coder:7b run with prompt v2 passed the fixed case in 13.47 seconds, with one grounded fact, preserved unknowns and unchanged SQLite bytes. See [docs/LOCAL-SMOKE.md](docs/LOCAL-SMOKE.md). These observations establish compatibility for that short case, not general extraction quality or model ranking. No new dependency or downloaded model is introduced.
+
+Local offline verification on 2026-11-28 passed 258 tests with the extra and 233 base tests, with the optional provider integration module intentionally skipped in the base variant. Ruff lint/format, package build, isolated wheel validation and the original synthetic benchmark passed. Hosted base/extra Windows/Ubuntu checks are verified on the increment PR. Default CI has no live inference.
 
 Gate: annotated relevant/irrelevant/ambiguous cases; hallucinated evidence rejected; local provider works with no OpenAI key; remote provider remains optional; malformed/model-unavailable/budget-exhausted paths retain deterministic behavior. Matching is reproducible for fixed dimension inputs and never described as hiring probability. CV enrichment is opt-in and cannot silently turn inferred facts into verified skills.
 

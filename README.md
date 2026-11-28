@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Phase 1 and 2.1a merged; 2.1b implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. Structured extraction supports offline response fixtures and an optional local Ollama adapter, tested with simulated HTTP responses. No model is configured by default and no live inference quality has been measured. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
+**Phase 1 and 2.1a/b merged; local smoke validation implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. Structured extraction supports offline response fixtures and an optional local Ollama adapter. One short synthetic live case passed on an already installed model after bounded source-span hints were added; broader model quality remains unmeasured. No model is configured by default. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -72,6 +72,8 @@ uv run --locked --offline career-intelligence jobs extract --config conf/setting
 Every extracted fact needs an exact quoted span from the named posting field. Unknowns stay null; explicit empty collections require evidence. Invalid output is rejected in full, and extraction never modifies collected facts, filter decisions or candidate data. The command only replays a local response, with no model calls. See [the extraction guide](docs/EXTRACTION.md) for the disposable demonstration, schema, limits, failure statuses and remaining provider work.
 
 For explicitly configured local inference, install the optional extra, set `ollama.model` in local settings, and replace the fixture flag with `--ollama`. Run with `uv run --locked --offline --extra ollama career-intelligence jobs extract --config conf/demo.local.yml --job-id JOB_ID --ollama`. The [local-provider guide](docs/EXTRACTION.md#optional-local-ollama-21b) describes the trusted loopback server, cloud-disabled daemon, supported model requirements, resource bounds and opt-in live checks. No model is downloaded automatically and candidate profiles are excluded from requests.
+
+To reproduce the isolated synthetic trial, use `uv run --locked --offline --extra ollama python scripts/smoke_ollama.py --live --model YOUR_LOCAL_MODEL --timeout 120`. It requires explicit opt-in, reads a fixed public fixture and creates its own temporary database. See [the measured smoke record](docs/LOCAL-SMOKE.md), including unsuccessful trials and limitations. Prompt v2 provides bounded source-position hints while retaining strict quotation validation.
 
 ## Configuration and privacy
 
@@ -200,4 +202,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Phase 1 and Phase 2.1a are merged. Phase 2.1b implements the approved optional Ollama adapter; actual model/hardware compatibility, live extraction quality, independent annotation review and a broader real-source held-out benchmark remain pending. Eligibility and matching follow in later Phase 2 milestones. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.
+Phase 1 and Phase 2.1a/b are merged. A short live synthetic compatibility check passed on qwen2.5-coder:7b; general extraction quality, independent annotation review and a broader real-source held-out benchmark remain pending. Eligibility and matching follow in later Phase 2 milestones. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.

@@ -76,6 +76,8 @@ jobs:
         run: uv run --locked --offline python scripts/evaluate.py
       - name: Check offline extraction CLI availability
         run: uv run --locked --offline career-intelligence jobs extract --help
+      - name: Check opt-in smoke command help without inference
+        run: uv run --locked --offline python scripts/smoke_ollama.py --help
       - run: uv build --no-build-isolation --offline
       - name: Verify installed wheel in a fresh environment
         run: uv run --locked --offline python scripts/check_distribution.py ${{ matrix.extra == 'ollama' && '--extra ollama' || '' }}

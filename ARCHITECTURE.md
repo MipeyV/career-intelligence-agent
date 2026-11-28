@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a are merged. Milestone 2.1b adds an optional local Ollama adapter with dependencies approved on 2026-11-27. The adapter has offline HTTP-contract validation; actual live inference and later intelligent services remain to be validated or implemented.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a/b are merged. The optional Ollama dependency set was approved on 2026-11-27. Offline HTTP-contract validation is complemented by one successful short synthetic local case on 2026-11-28, with unsuccessful trials recorded separately. General model quality and later intelligent services remain to be validated or implemented.
 
 ## 1. Design and scope
 
@@ -162,6 +162,8 @@ Phase 1 does not parse every eligibility requirement from prose. It will expose 
 ## 6. Later intelligent workflow
 
 Implemented in 2.1a: `extraction.py` defines a strict quoted-fact schema, a small async provider protocol, bounded local response replay and a validation service. `jobs extract` selects an immutable revision read-only and returns a separate versioned result; it does not mutate or persist source facts. Only title, location and description enter the provider request. Exact Unicode spans, finite confidence values, collection bounds and explicit-empty evidence are validated. Oversized, malformed, timed-out or unsupported responses produce safe failure statuses, with no retries. This validates textual presence, not semantic entailment. See [the extraction contract](docs/EXTRACTION.md). No database migration or dependency addition is needed for this increment.
+
+The local smoke-validation increment adds prompt v2 with bounded, deterministic span hints derived from those same source fields. This helps a model select exact positions while preserving the original evidence validator: no approximate matches or offset repairs are accepted. Hints and original fields share the configured input-byte budget. The explicit `scripts/smoke_ollama.py --live` path uses a fixed synthetic fixture, disposable SQLite and one bounded provider attempt; its summary contains only checks and safe HTTP timing diagnostics. It never loads a private settings/profile file or existing database. Default tests use mock providers for that script and CI does not invoke inference.
 
 Implemented in 2.1b: a lazily imported LangChain/Ollama adapter, explicitly selected with `--ollama`, uses only a validated loopback IP endpoint. A bounded `/api/show` preflight must identify a local completion model before `/api/chat` receives posting text. Native schema steering preserves raw JSON for the existing validator; tool calls and incomplete generation are refused. HTTP response bytes, timeout, output tokens and context are bounded/configured, with no retries, proxy inheritance, redirects or tracing. A clean task context isolates ambient callbacks; inherited authorization is stripped. SDK clients close on success, failure and cancellation. The pinned integration's private client references are a small documented compatibility boundary. Default installation and deterministic services do not import LangChain. Model/hardware compatibility and semantic extraction quality require a separately authorized live check.
 
