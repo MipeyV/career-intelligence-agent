@@ -1,0 +1,12 @@
+{
+  "jobs": [
+    {
+      "id": 302,
+      "title": "Research Engineer",
+      "absolute_url": "https://example.com/synthetic-alternative-role",
+      "location": {"name": "Example City"},
+      "content": "<p>A completed MSc degree or at least 2 years of professional experience is required.</p>"
+    }
+  ],
+  "meta": {"total": 1}
+}

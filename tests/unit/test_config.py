@@ -15,6 +15,71 @@ from career_intelligence.config import (
 )
 
 
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"completed": True},
+        {"completed": True, "status_as_of": "2028-06"},
+        {"completed": True, "status_as_of": "2028-06-30"},
+        {
+            "completed": False,
+            "completion_date": "2028-05",
+            "status_as_of": "2028-06-30",
+            "evidence": ["synthetic record"],
+        },
+        {
+            "completed": True,
+            "completion_date": "2029",
+            "status_as_of": "2028-06-30",
+            "evidence": ["synthetic record"],
+        },
+        {"completion_date": "2028-05"},
+        {"status_as_of": "2028-06-30"},
+    ],
+)
+def test_completion_facts_require_consistent_dated_evidence(changes):
+    from career_intelligence.config import Education
+
+    with pytest.raises(ValidationError):
+        Education.model_validate({"institution": "Example", "degree": "MSc", **changes})
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {
+            "ongoing": True,
+            "end": "2028-05-01",
+            "status_as_of": "2028-06-30",
+            "evidence": ["synthetic status"],
+        },
+        {
+            "ongoing": False,
+            "end": "2029-01-01",
+            "status_as_of": "2028-06-30",
+            "evidence": ["synthetic status"],
+        },
+        {"ongoing": True, "status_as_of": "2028-06-30"},
+        {"ongoing": True, "status_as_of": "2028-06", "evidence": ["synthetic status"]},
+        {"ongoing": True, "status_as_of": "2025-01-01", "evidence": ["synthetic status"]},
+        {"status_as_of": "2028-06-30"},
+    ],
+)
+def test_employment_status_requires_consistent_dated_evidence(changes):
+    from career_intelligence.config import Experience
+
+    with pytest.raises(ValidationError):
+        Experience.model_validate(
+            {
+                "employer": "Example",
+                "role": "Engineer",
+                "start": "2026-01-01",
+                "kind": "employment",
+                **changes,
+            }
+        )
+
+
 def enabled_source(**updates):
     return {
         "key": "example-board",

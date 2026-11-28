@@ -58,19 +58,47 @@ def _date_bounds(value: str) -> tuple[date, date]:
         raise ValueError("invalid calendar date") from None
 
 
+def _status_date(value: str | None) -> date:
+    if value is None or len(value) != 10:
+        raise ValueError("a dated status requires YYYY-MM-DD")
+    lower, upper = _date_bounds(value)
+    if lower != upper:
+        raise ValueError("a dated status requires YYYY-MM-DD")
+    return lower
+
+
 class Education(_ConfigModel):
     institution: Text
     degree: Text
     field: Text | None = None
     expected_graduation: Text | None = None
+    completed: bool | None = None
+    completion_date: Text | None = None
+    status_as_of: Text | None = None
     evidence: list[Text] = Field(default_factory=list)
 
-    @field_validator("expected_graduation")
+    @field_validator("expected_graduation", "completion_date")
     @classmethod
     def validate_graduation(cls, value: str | None) -> str | None:
         if value is not None:
             _date_bounds(value)
         return value
+
+    @model_validator(mode="after")
+    def validate_completion(self) -> Self:
+        if self.completed is None:
+            if self.completion_date is not None or self.status_as_of is not None:
+                raise ValueError("completion metadata needs an explicit completed status")
+            return self
+        known_on = _status_date(self.status_as_of)
+        if not self.evidence:
+            raise ValueError("an explicit completion status requires evidence")
+        if self.completion_date is not None:
+            if self.completed is not True:
+                raise ValueError("a completion date requires completed true")
+            if _date_bounds(self.completion_date)[0] > known_on:
+                raise ValueError("completion cannot follow its status attestation")
+        return self
 
 
 class Experience(_ConfigModel):
@@ -80,6 +108,8 @@ class Experience(_ConfigModel):
     end: Text | None = None
     kind: Literal["employment", "apprenticeship", "internship", "other"]
     counts_as_professional_experience: bool | None = None
+    ongoing: bool | None = None
+    status_as_of: Text | None = None
     evidence: list[Text] = Field(default_factory=list)
 
     @field_validator("start", "end")
@@ -93,6 +123,19 @@ class Experience(_ConfigModel):
     def validate_order(self) -> Self:
         if self.end and _date_bounds(self.start)[0] > _date_bounds(self.end)[1]:
             raise ValueError("experience end must not precede start")
+        if self.ongoing is None:
+            if self.status_as_of is not None:
+                raise ValueError("status date requires an explicit ongoing status")
+            return self
+        known_on = _status_date(self.status_as_of)
+        if not self.evidence:
+            raise ValueError("an explicit ongoing status requires evidence")
+        if _date_bounds(self.start)[0] > known_on:
+            raise ValueError("an employment status cannot precede its possible start")
+        if self.ongoing and self.end is not None:
+            raise ValueError("ongoing employment cannot have an end date")
+        if self.end is not None and _date_bounds(self.end)[0] > known_on:
+            raise ValueError("ended employment cannot end after its status attestation")
         return self
 
 
@@ -161,6 +204,24 @@ class CandidateProfile(_ConfigModel):
     work_authorizations: list[WorkAuthorization] | None = None
     projects: list[Project] | None = None
     preferences: CareerPreferences
+
+
+def profile_hash_payload(profile: CandidateProfile) -> dict:
+    """Preserve legacy hashes while additive attested facts remain unknown.
+
+    Serialization still exposes nulls. Only this hash view omits the new null fields;
+    known statuses, dates and evidence remain part of the canonical profile snapshot.
+    """
+    payload = profile.model_dump(mode="json")
+    for section, fields in (
+        ("education", ("completed", "completion_date", "status_as_of")),
+        ("experience", ("ongoing", "status_as_of")),
+    ):
+        for item in payload[section] or []:
+            for name in fields:
+                if item[name] is None:
+                    del item[name]
+    return payload
 
 
 class Source(_ConfigModel):

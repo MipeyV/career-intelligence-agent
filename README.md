@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Phase 1 and 2.1 merged; reviewed eligibility rules (2.2a) implemented.** The deterministic MVP includes discovery, history, explained filtering, recovery and synthetic evaluation. Structured extraction supports fixtures and optional local Ollama. Eligibility now evaluates reviewed, source-bound requirements locally against the configured profile, with explicit unknowns and no automatic rejection from discovery. One short synthetic inference case passed; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
+**Phase 1, 2.1 and 2.2a merged; compound eligibility (2.2b) implemented.** The deterministic MVP includes discovery, history, filtering, recovery and synthetic evaluation. Reviewed eligibility now supports bounded AND/OR groups and dated, user-attested education/employment facts, while preserving unknowns. Structured extraction supports fixtures and optional local Ollama; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -88,6 +88,8 @@ The repository includes:
 
 Profile configuration supports education and graduation dates, availability, employment episodes and apprenticeship status, skills and evidence, projects, target roles, ordered locations, compensation target and fallback, and explicitly known languages and work rights. Omitted candidate fact lists remain null; an explicitly empty list remains empty. No personal details belong in application logic or committed test fixtures.
 
+Education completion and ongoing/ended employment can be stated explicitly with `status_as_of` and evidence references. Defaults remain unknown; the application does not infer these states from an expected graduation or missing end date. See [dated facts and compatibility](docs/ELIGIBILITY-V2.md) before configuring them.
+
 Copy `conf/profile.example.yml` to `conf/profile.local.yml`, replace the synthetic facts, then set `profile_file: profile.local.yml` in your local settings copy (for example `conf/settings.local.yml`, also ignored). Relative profile, company and database paths are resolved against the settings file's directory, independent of the working directory. `.env.example` documents future variables only: this milestone does not read `.env` files.
 
 Dates accept `YYYY`, `YYYY-MM` and `YYYY-MM-DD` text and preserve precision; quote a year such as `"2028"` so YAML does not treat it as an integer. Unknown facts use null. The loader rejects unknown fields, duplicate keys, aliases, custom YAML tags, invalid dates/limits and files larger than 1 MiB. It accepts UTF-8 with or without a byte-order mark.
@@ -103,6 +105,8 @@ uv run --locked --offline career-intelligence jobs eligibility --config conf/set
 ```
 
 The scoped result is `eligible`, `potentially_eligible`, `uncertain` or `not_eligible`, with rule evidence, reasons and hashes. Missing facts remain unknown; no model or network is invoked and SQLite is unchanged. Status applies only to reviewed constraints and does not certify legal eligibility. See [the eligibility guide](docs/ELIGIBILITY.md) for a complete synthetic demonstration, supported rule types, review/completeness assertions and remaining limitations.
+
+Schema-2 reviews add `all_of` / `any_of` groups, per-branch explanations and degree completion/window conditions evaluated on the same qualification. Flat schema-1 reviews remain accepted. [The schema-2 guide](docs/ELIGIBILITY-V2.md) documents the limits and four-valued logic; a failed alternative cannot reject a passing or unresolved route.
 
 ## Preview job collection
 
@@ -212,4 +216,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Phase 1 and Phase 2.1 are merged. Phase 2.2a implements deterministic reviewed eligibility; automatic semantic normalization, compound conditions and verified completion semantics remain planned. A short local synthetic inference check passed, while general extraction/eligibility quality and a real-source held-out benchmark remain pending. Matching follows in 2.3; delivery automation follows in Phase 4 with a separately chosen release target.
+Phase 1, 2.1 and 2.2a are merged. Phase 2.2b adds reviewed compound conditions and dated attested facts. General equivalence handling, automatic semantic normalization and real-source accuracy evaluation remain planned. Matching follows in 2.3; delivery automation follows in Phase 4 with a separately chosen release target.

@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field
 
 from career_intelligence.collection import Posting
-from career_intelligence.config import CandidateProfile, FilterPolicy
+from career_intelligence.config import CandidateProfile, FilterPolicy, profile_hash_payload
 
 FILTER_VERSION = 1
 Decision = Literal["keep", "review", "exclude"]
@@ -35,7 +35,7 @@ class FilterDecision(BaseModel):
 
 def configuration_hash(profile: CandidateProfile, policy: FilterPolicy) -> str:
     data = {
-        "profile": profile.model_dump(mode="json"),
+        "profile": profile_hash_payload(profile),
         "policy": policy.model_dump(mode="json"),
         "filter_version": FILTER_VERSION,
     }

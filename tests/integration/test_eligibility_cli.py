@@ -76,7 +76,8 @@ def test_reviewed_assessment_is_read_only_deterministic_and_does_not_change_filt
 
 
 @pytest.mark.parametrize(
-    "failure", ["stale", "quote", "profile", "extra", "duplicate", "oversized", "kind"]
+    "failure",
+    ["stale", "quote", "profile", "extra", "duplicate", "oversized", "kind", "nested_kind"],
 )
 def test_invalid_or_stale_reviews_are_redacted_and_do_not_write_storage(
     failure,
@@ -96,6 +97,11 @@ def test_invalid_or_stale_reviews_are_redacted_and_do_not_write_storage(
         review["extra"] = "PRIVATE_UNSUPPORTED_VALUE"
     elif failure == "kind":
         review["constraints"][0]["kind"] = "PRIVATE_UNSUPPORTED_VALUE"
+    elif failure == "nested_kind":
+        child = {**review["constraints"][0], "kind": ["PRIVATE_UNSUPPORTED_VALUE"]}
+        review["constraints"] = [
+            {"id": "group", "kind": "any_of", "source": child["source"], "conditions": [child]}
+        ]
     path.write_text(json.dumps(review), encoding="utf-8")
     if failure == "duplicate":
         path.write_text("schema_version: 1\nschema_version: 1\n", encoding="utf-8")
@@ -127,3 +133,104 @@ def test_assessment_requires_an_explicit_exact_date(as_of, config_files):
     with pytest.raises(SystemExit) as error:
         main(args)
     assert error.value.code == 2
+
+
+def test_compound_cli_accepts_experience_alternative_to_uncompleted_degree_without_writes(
+    config_files,
+    repository_root,
+    capsys,
+    tmp_path,
+):
+    settings, docs, write = config_files
+    docs["profile"]["education"] = [
+        {
+            "institution": "Example",
+            "degree": "MSc",
+            "completed": False,
+            "status_as_of": "2026-11-28",
+            "evidence": ["synthetic enrollment record"],
+        }
+    ]
+    docs["profile"]["experience"] = [
+        {
+            "employer": "Example",
+            "role": "Engineer",
+            "start": "2022-01-01",
+            "end": "2026-01-01",
+            "kind": "employment",
+            "counts_as_professional_experience": True,
+        }
+    ]
+    write("profile", docs["profile"])
+    assert (
+        main(
+            [
+                "collect",
+                "--config",
+                str(settings),
+                "--fixture",
+                str(repository_root / "tests/fixtures/greenhouse/eligibility_alternatives.json"),
+                "--persist",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    database = load_configuration(settings).settings.database_path
+    job = list_jobs(database)[0]
+    args = ["jobs", "eligibility", "--config", str(settings), "--job-id", job["id"]]
+    assert main([*args, "--template"]) == 0
+    document = json.loads(capsys.readouterr().out)
+    assert document["schema_version"] == 2
+    description = job["payload"]["description"]
+
+    def quote(text):
+        start = description.index(text)
+        return {
+            "text": text,
+            "evidence": {"field": "description", "start": start, "end": start + len(text)},
+        }
+
+    document.update(
+        {
+            "reviewed_by": "synthetic-reviewer",
+            "reviewed_on": "2026-11-28",
+            "coverage": "complete",
+            "candidate_assertions": {
+                "complete_sections": ["education", "experience"],
+                "work_locations": None,
+            },
+            "constraints": [
+                {
+                    "id": "education-or-experience",
+                    "kind": "any_of",
+                    "source": quote(description),
+                    "conditions": [
+                        {
+                            "id": "degree",
+                            "kind": "degree",
+                            "source": quote("A completed MSc degree"),
+                            "accepted_degrees": ["MSc"],
+                            "completion": "completed",
+                        },
+                        {
+                            "id": "experience",
+                            "kind": "minimum_experience",
+                            "minimum_years": 2,
+                            "source": quote("at least 2 years of professional experience"),
+                        },
+                    ],
+                }
+            ],
+        }
+    )
+    path = tmp_path / "compound-review.yml"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    before = database.read_bytes()
+    assert main([*args, "--requirements", str(path), "--as-of", "2026-11-28"]) == 0
+    output = capsys.readouterr()
+    result = json.loads(output.out)
+    assert result["status"] == "eligible" and result["schema_version"] == 2
+    children = result["rules"][0]["conditions"]
+    assert [child["outcome"] for child in children] == ["contradiction", "met"]
+    assert not output.err and database.read_bytes() == before

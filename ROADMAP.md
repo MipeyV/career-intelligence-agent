@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a/b/c were merged through PRs #1-#9, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. The next increment implements reviewed deterministic eligibility (2.2a), without new dependencies or model calls.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1 and 2.2a were merged through PRs #1-#10, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.2b adds reviewed compound requirements and dated profile facts, without new dependencies or model calls.
 
 ## Branches, reviews and CI/CD
 
@@ -189,9 +189,17 @@ Rules cover availability/deadline intervals, expected graduation windows, merged
 
 Local verification on 2026-11-28 passed 325 offline tests with the extra and 300 base tests, with the optional provider integration module intentionally skipped in the base variant. Ruff lint/format, source/wheel builds, isolated base/extra wheel validation, the original synthetic benchmark and documentation checks passed on Windows/Python 3.12.14. Hosted Windows/Ubuntu CI is checked on the increment PR. No live model or source call was run for this increment; synthetic eligibility annotations still require independent review.
 
+### 2.2b: compound requirements and dated facts
+
+Implemented on `feat/phase-2-2-compound-requirements`: version-2 review trees support bounded AND/OR logic with branch-level evidence and explanations. A failed alternative does not reject a passing or unresolved route. All branches are validated, IDs are globally unique, nesting is bounded, and only root requirements may be preferred. Existing flat v1 reviews remain accepted; assessment/evaluator versions are 2.
+
+Education completion and ongoing/ended employment require explicit dated attestations and evidence references. Definite experience is not extrapolated beyond an ongoing attestation. Degree completion and time windows apply to the same education entry. Unknown new fields preserve frozen legacy profile/filter hashes, while known facts invalidate prior bindings. No source/profile/database mutation, model call, dependency addition or migration is introduced. See [docs/ELIGIBILITY-V2.md](docs/ELIGIBILITY-V2.md).
+
+Local verification on 2026-11-28 passed 391 offline tests with the extra and 366 base tests, with the optional provider module intentionally skipped in the base variant. Ruff lint/format, source/wheel builds, isolated base/extra wheel checks, the original benchmark and documentation checks passed on Windows/Python 3.12.14. Tests cover all 32 two-child truth-table combinations, tree limits, unused-branch evidence, dated facts, same-degree binding, frozen legacy hashes and read-only CLI behavior. Hosted Windows/Ubuntu CI is checked on the increment PR; no live model or source was called.
+
 ### Remaining 2.2 work (planned)
 
-Compound alternatives and cross-condition bindings, verified completed/ongoing profile facts, broader equivalence handling and any automatic semantic normalization require their own reviewed contracts and tests. The reviewed rule engine does not establish real-world eligibility accuracy or replace verification of legal/work rights. Independent annotation review and a held-out benchmark remain pending; scoring and compensation stay in 2.3/2.4.
+General cross-condition bindings beyond the bound degree rule, broader equivalence handling and automatic semantic normalization still need their own reviewed contracts and tests. Attestations do not establish independently verified world truth. The engine does not establish real-world eligibility accuracy or replace verification of legal/work rights. Independent annotation review and a held-out benchmark remain pending; scoring and compensation stay in 2.3/2.4.
 
 ## Phase 3: conditional LangGraph workflow and preparation
 

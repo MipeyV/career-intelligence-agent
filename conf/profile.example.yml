@@ -6,6 +6,9 @@ education:
     degree: MSc
     field: Computer Science
     expected_graduation: "2028"
+    completed: null
+    completion_date: null
+    status_as_of: null
     evidence: []
 experience:
   - employer: Example Analytics
@@ -14,6 +17,8 @@ experience:
     end: null
     kind: apprenticeship
     counts_as_professional_experience: null
+    ongoing: null
+    status_as_of: null
     evidence: []
 skills:
   - name: Python
