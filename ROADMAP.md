@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1 and 2.2a/b were merged through PRs #1-#11, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.2c adds scoped degree-equivalence reviews, without new dependencies or model calls.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1 and 2.2a–c were merged through PRs #1-#12, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.3a adds the reviewed multidimensional matching contract, without new dependencies or model calls.
 
 ## Branches, reviews and CI/CD
 
@@ -208,6 +208,18 @@ Local verification on 2026-11-28 passed 435 offline tests with the extra and 410
 ### Remaining 2.2 work (planned)
 
 General cross-condition bindings beyond the bound degree rule, inferred or broader equivalence handling (including language labels) and automatic semantic normalization still need their own reviewed contracts and tests. Attestations do not establish independently verified world truth. The engine does not establish real-world eligibility accuracy or replace verification of legal/work rights. Independent annotation review and a held-out benchmark remain pending; scoring and compensation stay in 2.3/2.4.
+
+### 2.3a: reviewed multidimensional matching contract
+
+Implemented on `feat/phase-2-3-matching-contract`: a separate offline service and read-only `jobs match` command aggregate locally reviewed ratings across the nine planned dimensions. Explicit versioned policy defines all weights, five rubric anchors per dimension and confidence/coverage gates. Reviews require exact source quotes, known scalar/explicit-empty profile references and job/revision/profile/policy binding. Every supplied dimension is validated, including those excluded by weight/confidence. Unknowns and null/empty notes are preserved; the template is unreviewed and unusable until provenance is supplied.
+
+Deterministic rational arithmetic calculates a weighted mean over included dimensions, reports coverage/confidence and withholds the overall score when coverage is insufficient. Reviewer confidence is uncalibrated and configured fit is not hiring probability. Policy contents, assessment evidence/notes and review provenance are hashed. Profile/source/filter/eligibility/application state remains unchanged. CI adds CLI help and isolated installed-wheel matching validation for Windows/Ubuntu and base/extra variants. No dependency, migration, model call or evidence-file lookup is introduced. See [docs/MATCHING.md](docs/MATCHING.md).
+
+Local verification on 2026-11-28 passed 527 offline tests with the extra and 502 base tests (one optional provider module intentionally skipped), Ruff lint/format, source/wheel builds and isolated base/extra wheel execution on Windows/Python 3.12.14. The 92 added cases cover level/weight contracts, missing facts, confidence/coverage boundaries before rounding, extreme finite weights, stale bindings, evidence validation even for excluded dimensions, safe/redacted loaders, null/empty preservation, historical revisions and read-only CLI behavior. The original 16-case synthetic benchmark completed and backup/restore integration tests passed. Documentation UTF-8, local links, fences and the example quotation span were checked. Hosted Windows/Ubuntu CI is checked on the increment PR; no live model or source was called. Independent annotation review remains pending.
+
+### Remaining 2.3 work (planned)
+
+Automatic dimension analysis with grounded interpretations, provider/prompt contracts, cross-offer ranking and held-out quality/stability measurement remain planned. Exact quotes and profile paths establish presence, not semantic correctness of the manually reviewed ratings. The synthetic policy is not calibrated or personalized. Compensation normalization/provenance remains 2.4, while persistent analysis caching and model budgets remain 2.5; these are not implied by a passing reviewed contract.
 
 ## Phase 3: conditional LangGraph workflow and preparation
 

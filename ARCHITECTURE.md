@@ -1,10 +1,10 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a/b are merged. The optional Ollama dependency set was approved on 2026-11-27. Offline HTTP-contract validation is complemented by one successful short synthetic local case on 2026-11-28, with unsuccessful trials recorded separately. General model quality and later intelligent services remain to be validated or implemented.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Phase 1, 2.1 and 2.2a–c are merged; 2.3a adds the reviewed matching contract. The optional Ollama dependency set was approved on 2026-11-27. Offline HTTP-contract validation is complemented by one successful short synthetic local case on 2026-11-28, with unsuccessful trials recorded separately. General model quality and later intelligent services remain to be validated or implemented.
 
 ## 1. Design and scope
 
-Phase 2.1c is also merged. Increment 2.2a adds reviewed eligibility as a deterministic read-only service, without new dependencies or a database migration.
+Reviewed eligibility and matching are deterministic read-only services. Matching adds no dependency or database migration; automatic dimension analysis remains planned.
 
 Use a modular monolith: one Python package, one CLI process, one local SQLite database, and explicit interfaces at external boundaries. Ordinary functions and small services orchestrate Phase 1. Preserve these functions when adding LangGraph later; do not build a custom agent framework now.
 
@@ -22,7 +22,7 @@ flowchart TD
     C --> J[Run and source outcome logs]
 ```
 
-All collection is independent of candidate preferences. Store postings before filtering, so revised preferences can re-evaluate existing data without refetching or losing previously rejected roles. Job lifecycle status, filter decision, future eligibility, and future application status are separate concepts.
+All collection is independent of candidate preferences. Store postings before filtering, so revised preferences can re-evaluate existing data without refetching or losing previously rejected roles. Job lifecycle status, filter decision, reviewed eligibility/matching, and future application status are separate concepts.
 
 ## 2. Minimal package layout
 
@@ -33,6 +33,8 @@ conf/                         # example profile, sources, settings
 src/career_intelligence/
     cli.py                    # argparse entry point
     config.py                 # safe YAML loading and validation
+    eligibility.py            # implemented reviewed eligibility service
+    matching.py               # implemented reviewed dimension contract and aggregation
     schemas/                  # posting, snapshot, event, profile contracts
     connectors/               # protocol, HTTP policy, Greenhouse adapter
     processing/               # normalization, identity, changes, filters
@@ -45,7 +47,7 @@ tests/
 docs/                         # operational notes when implementation begins
 ```
 
-Future modules such as `llm/`, `eligibility/`, `matching/`, `notifications/`, and `evaluation/` are added when used. Avoid empty abstractions for every possible SaaS feature.
+The layout above is a boundary proposal; implemented domain services use flat modules, including `extraction.py`, `ollama_provider.py`, `eligibility.py`, `matching.py` and `evaluation.py`. Future packages such as `workflows/` and `notifications/` are added when used. Avoid empty abstractions for every possible SaaS feature.
 
 ## 3. Boundary contracts
 
@@ -181,7 +183,11 @@ These are user-attested facts, not independent software verification. Completene
 
 Implemented in 2.2c: review schema 3 adds at most 64 explicit education-index/accepted-label equivalence decisions per degree rule, with rationale and bounded evidence references. Mappings are bound to the existing job/revision/profile review; they do not transfer between rules or imply completion, dates, hierarchy or authority recognition. Any literal or positively reviewed alternative can match; a nonmatching qualification contradicts only after every accepted label has an explicit negative decision. Other paths remain unknown, and hard rejection still needs complete education coverage. All mapping references are validated even in unused branches. Profile reordering invalidates the review hash binding. Output/evaluator version 3 exposes per-qualification match provenance; schema-1/2 reviews remain accepted without mappings. No dependency, database migration, model call or file/URL lookup is introduced. See [the degree-equivalence contract](docs/DEGREE-EQUIVALENCES.md).
 
-Evaluate technical skills, professional experience, academics, seniority, domain, location, compensation, career objectives, and entrepreneurial learning separately. Versioned rubrics produce bounded dimension scores with evidence, confidence, strengths, gaps, blockers, transferable skills, and recommendations. A deterministic function computes `sum(weight * dimension_score) / sum(weight)` for assessed dimensions; report weight coverage and withhold a final score below a configured coverage minimum. Keep missing dimensions visibly unknown. Scores measure configured fit, not hiring probability. Deadline/eligibility rules can change recommendation priority independently of fit.
+Implemented in 2.3a: `matching.py` defines nine explicit dimensions (technical skills, professional experience, academics, seniority, domain, location, compensation, career objectives and entrepreneurial learning). `jobs match` reads a locally reviewed assessment bound to an immutable job revision, profile and full policy hash. Policy files define all weights, five anchors per dimension and confidence/coverage thresholds. Source quotes and known scalar/explicit-empty profile references are validated in every assessment, including excluded dimensions. Notes preserve null versus empty collections. No LLM rating, persistence or state mutation is introduced; exact quotations/references establish presence rather than semantic correctness or reviewer authenticity.
+
+The reviewed levels 0–4 map to 0–100 and ordinary deterministic code computes `sum(weight * dimension_score) / sum(weight)` over dimensions with positive weight and sufficient declared confidence. Coverage is their weight divided by all configured weight. Missing dimensions stay null; an overall score is withheld below minimum coverage or with no included weight. Standard-library rational arithmetic avoids rounding-dependent gates; output rounding occurs afterward. Weighted confidence remains an uncalibrated reviewer declaration. The linear rubric scale and synthetic example weights are conventions, not measured quality. Separate versioned contracts/hashes permit later provider or cache integration without treating model output as a trusted review. See [the matching contract](docs/MATCHING.md).
+
+Automatic semantic assessment, multi-job ranking and measured matching quality remain planned. Scores measure configured fit, not hiring probability. Eligibility and deadlines remain separate and may later change recommendation priority independently of fit.
 
 Separate employer-disclosed base, bonus, equity, signing bonus, and total compensation; external benchmarks and estimates carry their own provenance, date, currency, confidence, and annualization assumptions. No invented salary or silent substitution of a benchmark for employer pay.
 

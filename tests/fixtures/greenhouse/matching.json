@@ -1,0 +1,13 @@
+{
+  "jobs": [
+    {
+      "id": 8401,
+      "title": "Software Engineer",
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/8401",
+      "location": {"name": "Example City"},
+      "content": "Build Python services and learn product development. Compensation is not disclosed.",
+      "updated_at": "2026-11-28T00:00:00Z"
+    }
+  ],
+  "meta": {"total": 1}
+}

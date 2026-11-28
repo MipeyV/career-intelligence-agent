@@ -1,0 +1,81 @@
+# Synthetic demonstration policy, not calibrated or personalized recommendations.
+# Levels are 0..4; unknown evidence must use a null assessment, never level 0.
+schema_version: 1
+policy_version: synthetic-equal-weights-v1
+rubric_version: reviewed-fit-v1
+minimum_coverage: 0.6
+minimum_dimension_confidence: 0.5
+weights:
+  technical_skills: 1
+  professional_experience: 1
+  academics: 1
+  seniority: 1
+  domain: 1
+  location: 1
+  compensation: 1
+  career_objectives: 1
+  entrepreneurial_learning: 1
+rubrics:
+  technical_skills:
+    anchors:
+      - Reviewed skill requirements have no demonstrated overlap with declared skills.
+      - Evidence supports a small subset of the reviewed skills.
+      - Evidence supports some core skills, with material gaps.
+      - Evidence supports most core skills, with limited gaps.
+      - Evidence supports all skills within the reviewed scope.
+  professional_experience:
+    anchors:
+      - Reviewed professional tasks have no overlap with declared experience.
+      - Declared experience has limited transferable relevance.
+      - Declared experience partly covers the reviewed responsibilities.
+      - Declared experience strongly covers the reviewed responsibilities.
+      - Declared experience fully covers the reviewed responsibility scope.
+  academics:
+    anchors:
+      - Reviewed academic topics have no overlap with declared education.
+      - Declared education covers a small subset of the reviewed topics.
+      - Declared education partly covers the reviewed topics.
+      - Declared education covers most reviewed topics.
+      - Declared education fully covers the reviewed academic topic scope.
+  seniority:
+    anchors:
+      - Declared target level conflicts with the reviewed responsibility level.
+      - Reviewed responsibility level is substantially beyond the declared target.
+      - Reviewed responsibility level partly aligns with the declared target.
+      - Reviewed responsibility level closely aligns with the declared target.
+      - Reviewed responsibility level fully aligns with the declared target scope.
+  domain:
+    anchors:
+      - Reviewed domain tasks have no overlap with declared domain experience.
+      - Declared background has limited transferable domain relevance.
+      - Declared background partly covers the reviewed domain tasks.
+      - Declared background strongly covers the reviewed domain tasks.
+      - Declared background fully covers the reviewed domain task scope.
+  location:
+    anchors:
+      - Disclosed work location conflicts with all declared location preferences.
+      - Disclosed work location has limited alignment with declared preferences.
+      - Disclosed work location partly aligns with declared preferences.
+      - Disclosed work location closely aligns with declared preferences.
+      - Disclosed work location fully aligns with declared preferences.
+  compensation:
+    anchors:
+      - Reviewed comparable disclosed compensation falls below the configured acceptable range.
+      - Reviewed comparable disclosed compensation has limited alignment with the configured range.
+      - Reviewed comparable disclosed compensation partly aligns with the configured range.
+      - Reviewed comparable disclosed compensation closely aligns with the configured target.
+      - Reviewed comparable disclosed compensation meets the configured target.
+  career_objectives:
+    anchors:
+      - Reviewed role activities conflict with the declared career objectives.
+      - Reviewed role activities support few declared objectives.
+      - Reviewed role activities support some declared objectives.
+      - Reviewed role activities support most declared objectives.
+      - Reviewed role activities support all objectives within the reviewed scope.
+  entrepreneurial_learning:
+    anchors:
+      - Reviewed learning opportunities conflict with declared entrepreneurial learning goals.
+      - Reviewed activities offer limited support for declared entrepreneurial learning goals.
+      - Reviewed activities partly support declared entrepreneurial learning goals.
+      - Reviewed activities strongly support declared entrepreneurial learning goals.
+      - Reviewed activities fully support the declared entrepreneurial learning scope.

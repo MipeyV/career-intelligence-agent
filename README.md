@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Phase 1, 2.1 and 2.2a/b merged; scoped degree-equivalence reviews (2.2c) implemented.** The deterministic MVP includes discovery, history, filtering, recovery and synthetic evaluation. Reviewed eligibility supports bounded AND/OR groups, dated education/employment facts and explicit per-qualification equivalence decisions, while preserving unknowns. These are local user attestations, not independent verification. Structured extraction supports fixtures and optional local Ollama; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
+**Phase 1, 2.1 and 2.2a–c merged; reviewed matching contract (2.3a) implemented.** The deterministic MVP includes discovery, history, filtering, recovery and synthetic evaluation. Reviewed eligibility supports bounded AND/OR groups, dated education/employment facts and scoped qualification equivalences. Matching now aggregates nine locally reviewed dimensions using versioned rubrics, explicit weights, confidence and coverage gates. These are local user attestations, not independent verification or automatic semantic ratings. Structured extraction supports fixtures and optional local Ollama; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -109,6 +109,17 @@ The scoped result is `eligible`, `potentially_eligible`, `uncertain` or `not_eli
 Schema-2 reviews add `all_of` / `any_of` groups, per-branch explanations and degree completion/window conditions evaluated on the same qualification. Flat schema-1 reviews remain accepted. [The schema-2 guide](docs/ELIGIBILITY-V2.md) documents the limits and four-valued logic; a failed alternative cannot reject a passing or unresolved route.
 
 New templates and assessments use schema 3. [Scoped degree-equivalence reviews](docs/DEGREE-EQUIVALENCES.md) can explicitly accept or reject a pairing between one education entry and one accepted label in one rule. Schema-1/2 reviews remain accepted without mappings. An equivalence never supplies completion or transfers to another rule; unreviewed alternatives remain unknown.
+
+## Reviewed multidimensional matching
+
+`jobs match` binds a local review to a job revision, current profile and explicitly selected policy. It computes component scores from five rubric anchors and aggregates nine dimensions deterministically. Unknowns stay null; zero-weight or low-confidence dimensions do not contribute, and insufficient weight coverage withholds the overall score. The result describes configured fit, not hiring probability or eligibility.
+
+```text
+uv run --locked --offline career-intelligence jobs match --config conf/matching-demo.local.yml --job-id JOB_ID --policy conf/matching.example.yml --template
+uv run --locked --offline career-intelligence jobs match --config conf/matching-demo.local.yml --job-id JOB_ID --policy conf/matching.example.yml --review data/matching-demo/review.local.yml
+```
+
+See [the matching guide](docs/MATCHING.md) to prepare those synthetic demo files and review the evidence. The [example policy](conf/matching.example.yml) is not personalized or calibrated. Matching does not call a model, persist analysis, rank all jobs or alter source/filter/application state; automatic dimension analysis remains planned.
 
 ## Preview job collection
 
