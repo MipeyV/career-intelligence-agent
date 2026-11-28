@@ -1,14 +1,22 @@
+from copy import deepcopy
 from datetime import date
 
 import pytest
 from pydantic import ValidationError
 
-from career_intelligence.config import CandidateProfile, ConfigurationError
+from career_intelligence.config import (
+    CandidateProfile,
+    ConfigurationError,
+    FilterPolicy,
+    profile_hash_payload,
+)
 from career_intelligence.eligibility import (
     ReviewedRequirements,
     assess_eligibility,
+    profile_hash,
     review_template,
 )
+from career_intelligence.filtering import configuration_hash
 
 SOURCE = "Synthetic source evidence for the rule-contract examples."
 AS_OF = date(2028, 6, 30)
@@ -50,13 +58,15 @@ def rule(kind, **values):
     }
 
 
-def review(profile, rules, *, complete=(), locations=None, coverage="complete"):
+def review(
+    profile, rules, *, complete=(), locations=None, coverage="complete", reviewed_on="2026-11-28"
+):
     data = review_template(revision(), profile)
     return ReviewedRequirements.model_validate(
         {
             **data,
             "reviewed_by": "synthetic-reviewer",
-            "reviewed_on": "2026-11-28",
+            "reviewed_on": reviewed_on,
             "coverage": coverage,
             "constraints": rules,
             "candidate_assertions": {
@@ -406,3 +416,266 @@ def test_assessment_hash_includes_as_of_and_source_quote_whitespace_is_preserved
 def test_ambiguous_or_incomplete_proficiency_scales_are_refused(values):
     with pytest.raises(ValidationError):
         review(candidate(), [rule("language", language="English", **values)])
+
+
+def group(kind, *conditions, **values):
+    tree = rule(kind, conditions=[deepcopy(child) for child in conditions], **values)
+
+    def name(node, prefix):
+        node["id"] = prefix
+        for index, child in enumerate(node.get("conditions", [])):
+            name(child, f"{prefix}-{index}")
+
+    name(tree, "root")
+    return tree
+
+
+@pytest.mark.parametrize(
+    "kind, table",
+    [
+        (
+            "all_of",
+            [
+                ["met", "potential", "unknown", "contradiction"],
+                ["potential", "potential", "unknown", "contradiction"],
+                ["unknown", "unknown", "unknown", "contradiction"],
+                ["contradiction", "contradiction", "contradiction", "contradiction"],
+            ],
+        ),
+        (
+            "any_of",
+            [
+                ["met", "met", "met", "met"],
+                ["met", "potential", "potential", "potential"],
+                ["met", "potential", "unknown", "unknown"],
+                ["met", "potential", "unknown", "contradiction"],
+            ],
+        ),
+    ],
+)
+@pytest.mark.parametrize("left,right", [(a, b) for a in range(4) for b in range(4)])
+def test_four_valued_compound_logic_does_not_reject_a_passing_alternative(kind, table, left, right):
+    leaves = [
+        rule("availability_by", cutoff="2029"),
+        rule("degree", accepted_degrees=["MSc"]),
+        rule("work_authorization", location="Example Region", sponsorship="unknown"),
+        rule("application_deadline", cutoff="2028-01-01"),
+    ]
+    profile = candidate(education=[{"institution": "Example", "degree": "MSc"}])
+    report = assess(profile, [group(kind, leaves[left], leaves[right])])
+    expected = table[left][right]
+    assert report["rules"][0]["outcome"] == expected
+    assert (
+        report["status"]
+        == {
+            "met": "eligible",
+            "potential": "potentially_eligible",
+            "unknown": "uncertain",
+            "contradiction": "not_eligible",
+        }[expected]
+    )
+    assert report["schema_version"] == report["eligibility_version"] == 2
+    assert len(report["rules"][0]["conditions"]) == 2
+
+
+def test_nested_groups_report_leaf_coverage_and_validate_even_unused_branches():
+    profile = candidate()
+    tree = group(
+        "all_of",
+        group(
+            "any_of",
+            rule("application_deadline", cutoff="2028-01-01"),
+            rule("availability_by", cutoff="2029"),
+        ),
+    )
+    report = assess(profile, [tree])
+    assert report["status"] == "eligible"
+    assert "application_deadline" not in report["unassessed_kinds"]
+    assert "availability_by" not in report["unassessed_kinds"]
+    tree["conditions"][0]["conditions"][0]["source"]["text"] = "Unsupported quote"
+    with pytest.raises(ConfigurationError):
+        assess(profile, [tree])
+
+
+def test_preferred_group_cannot_reject_and_preferred_children_are_refused():
+    tree = group("any_of", rule("application_deadline", cutoff="2028-01-01"), mandatory=False)
+    assert assess(candidate(), [tree])["status"] == "potentially_eligible"
+    tree["conditions"][0]["mandatory"] = False
+    with pytest.raises(ValidationError):
+        review(candidate(), [tree])
+
+
+@pytest.mark.parametrize("failure", ["depth", "nodes", "children", "empty", "duplicate", "v1"])
+def test_review_tree_limits_and_version_boundaries(failure):
+    leaf = rule("availability_by", cutoff="2029")
+    tree = group("all_of", leaf)
+    if failure == "depth":
+        for _ in range(3):
+            tree = group("all_of", tree)
+    elif failure == "nodes":
+        tree = group("all_of", *[group("all_of", *[leaf] * 4) for _ in range(32)])
+    elif failure == "children":
+        tree = group("all_of", *[leaf] * 33)
+    elif failure == "empty":
+        tree["conditions"] = []
+    elif failure == "duplicate":
+        tree["conditions"][0]["id"] = tree["id"]
+    document = {
+        **review_template(revision(), candidate()),
+        "reviewed_by": "synthetic-reviewer",
+        "reviewed_on": "2026-11-28",
+        "constraints": [tree],
+    }
+    if failure == "v1":
+        document["schema_version"] = 1
+    with pytest.raises(ValidationError):
+        ReviewedRequirements.model_validate(document)
+
+
+def test_flat_version_one_reviews_remain_accepted():
+    profile = candidate()
+    data = review(profile, [rule("availability_by", cutoff="2029")]).model_dump()
+    data["schema_version"] = 1
+    result = assess_eligibility(
+        revision(), profile, ReviewedRequirements.model_validate(data), as_of=AS_OF
+    )
+    assert result["status"] == "eligible"
+
+
+def completed_education(**updates):
+    return {
+        "institution": "Example",
+        "degree": "MSc",
+        "completed": True,
+        "completion_date": "2028-05",
+        "status_as_of": "2028-06-30",
+        "evidence": ["synthetic diploma record"],
+        **updates,
+    }
+
+
+@pytest.mark.parametrize(
+    "facts, expected",
+    [
+        ({}, "eligible"),
+        ({"completion_date": None}, "eligible"),
+        ({"completed": False, "completion_date": None}, "not_eligible"),
+        ({"completed": False, "completion_date": None, "status_as_of": "2028-01-01"}, "uncertain"),
+        ({"completed": None, "completion_date": None, "status_as_of": None}, "uncertain"),
+    ],
+)
+def test_completed_degree_uses_dated_attestations_without_inventing_completion(facts, expected):
+    profile = candidate(education=[completed_education(**facts)])
+    report = assess(
+        profile,
+        [rule("degree", accepted_degrees=["MSc"], completion="completed")],
+        complete=["education"],
+        reviewed_on="2028-06-30",
+    )
+    assert report["status"] == expected
+
+
+def test_degree_window_and_completion_must_hold_for_the_same_education_entry():
+    profile = candidate(
+        education=[
+            completed_education(completion_date="2027-05"),
+            completed_education(
+                completed=False, completion_date=None, expected_graduation="2028-05"
+            ),
+        ]
+    )
+    requirement = rule(
+        "degree",
+        accepted_degrees=["MSc"],
+        completion="completed",
+        graduation_earliest="2028-01-01",
+        graduation_latest="2028-09-30",
+    )
+    report = assess(profile, [requirement], complete=["education"], reviewed_on="2028-06-30")
+    assert report["status"] == "not_eligible"
+    profile = candidate(education=[*profile.model_dump()["education"], completed_education()])
+    assert (
+        assess(profile, [requirement], complete=["education"], reviewed_on="2028-06-30")["status"]
+        == "eligible"
+    )
+
+
+def test_projected_degree_outside_window_is_unknown_and_incomplete_education_is_not_rejected():
+    profile = candidate(
+        education=[{"institution": "Example", "degree": "MSc", "expected_graduation": "2029"}]
+    )
+    requirement = rule(
+        "degree",
+        accepted_degrees=["MSc"],
+        completion="expected_or_completed",
+        graduation_latest="2028-09-30",
+    )
+    assert assess(profile, [requirement], complete=["education"])["status"] == "uncertain"
+    profile = candidate(education=[completed_education(completed=False, completion_date=None)])
+    requirement = rule("degree", accepted_degrees=["MSc"], completion="completed")
+    assert assess(profile, [requirement], reviewed_on="2028-06-30")["status"] == "uncertain"
+
+
+def test_ongoing_credit_stops_at_attestation_and_ended_unknown_date_bounds_remain_uncertain():
+    profile = candidate(
+        experience=[
+            episode(
+                end=None,
+                ongoing=True,
+                status_as_of="2028-01-01",
+                evidence=["synthetic contract status"],
+            )
+        ]
+    )
+    requirement = rule("minimum_experience", minimum_years=2.2)
+    result = assess(profile, [requirement], complete=["experience"], reviewed_on="2028-06-30")
+    assert result["status"] == "uncertain"
+    assert result["rules"][0]["details"]["minimum_days"] == 730
+    assert (
+        assess(profile, [rule("minimum_experience", minimum_years=1)], reviewed_on="2028-06-30")[
+            "status"
+        ]
+        == "eligible"
+    )
+    profile = candidate(
+        experience=[
+            episode(
+                end=None,
+                ongoing=False,
+                status_as_of="2028-01-01",
+                evidence=["synthetic ended status"],
+            )
+        ]
+    )
+    result = assess(profile, [requirement], complete=["experience"], reviewed_on="2028-06-30")
+    assert result["rules"][0]["details"]["minimum_days"] == 0
+    assert result["rules"][0]["details"]["maximum_days"] == 731
+
+
+def test_future_status_attestation_is_not_valid_for_an_earlier_review():
+    profile = candidate(education=[completed_education()])
+    with pytest.raises(ConfigurationError):
+        assess(profile, [rule("degree", accepted_degrees=["MSc"])])
+
+
+def test_unknown_additive_facts_preserve_frozen_legacy_profile_hashes_and_known_facts_change_them():
+    profile = candidate(
+        education=[{"institution": "Example", "degree": "MSc", "expected_graduation": "2028"}],
+        experience=[episode(end=None)],
+    )
+    assert profile.model_dump()["education"][0]["completed"] is None
+    assert "completed" not in profile_hash_payload(profile)["education"][0]
+    assert (
+        profile_hash(profile) == "0293d1dbd7ec1487fc75b86cc19feda90c0d9788d67561400d80ca509258c462"
+    )
+    assert (
+        configuration_hash(profile, FilterPolicy())
+        == "3faf8acec580ffad274e2c3052757103b2a61a79654898c9c02b366946bceeb2"
+    )
+    updated = candidate(
+        education=[completed_education(expected_graduation="2028")], experience=[episode(end=None)]
+    )
+    assert profile_hash(updated) != profile_hash(profile)
+    assert configuration_hash(updated, FilterPolicy()) != configuration_hash(
+        profile, FilterPolicy()
+    )

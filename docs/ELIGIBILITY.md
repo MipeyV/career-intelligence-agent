@@ -1,4 +1,8 @@
-# Reviewed eligibility rules (2.2a)
+# Reviewed eligibility rules (2.2a/b)
+
+The basic workflow below now emits schema-2 templates and assessments. Flat schema-1
+reviews remain accepted. See [groups and dated facts](ELIGIBILITY-V2.md) for the
+additional reviewed AND/OR structure, completion facts and degree-specific windows.
 
 This increment evaluates a locally reviewed set of requirements against the configured
 profile. It is deterministic, offline and read-only. It does not call a model, infer
@@ -43,7 +47,7 @@ The completed document for this synthetic source has the following shape; replac
 the identity placeholders with values from the template and identify the reviewer:
 
 ```yaml
-schema_version: 1
+schema_version: 2
 job_id: COPY_FROM_TEMPLATE
 revision: 1
 revision_fingerprint: COPY_FROM_TEMPLATE
@@ -106,7 +110,7 @@ All rules have `id`, `kind`, `mandatory` (default true) and `source`. Additional
 | `application_deadline` | `cutoff`: compare the explicit as-of calendar date; exact dates are inclusive |
 | `graduation_window` | `earliest` and/or `latest`: compare expected graduation intervals; a compatible expectation is potential, never proof of completion |
 | `minimum_experience` | `minimum_years`, nullable `apprenticeship_counts`: compute conservative non-overlapping experience bounds |
-| `degree` | `accepted_degrees`: literal alternatives; a declared match is potential because the current profile does not establish completion status |
+| `degree` | `accepted_degrees`, optional completion/window policy: literal alternatives, with unverified completion remaining potential or unknown |
 | `language` | `language`, optional `minimum_proficiency` and `proficiency_order`: compare only the explicit reviewed scale |
 | `work_authorization` | `location`, `sponsorship` (`available`, `not_available`, `unknown`): compare declared status only for the matching location |
 | `geography` | `allowed_locations`: compare with separately attested feasible locations, never with preferences |
@@ -142,8 +146,9 @@ Experience is clipped to the as-of date and overlapping intervals are merged. De
 credit needs `counts_as_professional_experience: true`; unknown credit contributes
 only to the possible bound, while false is excluded. Apprenticeships additionally
 need the job rule's explicit acceptance for definite credit. A missing job policy
-keeps that credit uncertain; exclusion removes it. A missing end does not establish
-an ongoing episode: its lower bound is zero, with possible credit through as-of.
+keeps that credit uncertain; exclusion removes it. A missing end without a dated
+ongoing status has lower bound zero, with possible credit through as-of. Dated status
+handling is described in [the schema-2 guide](ELIGIBILITY-V2.md).
 
 Exact and partial dates produce day bounds: latest start/earliest end for the lower
 bound, earliest start/latest end for the upper, with conservative end-day treatment.
@@ -168,11 +173,10 @@ were checked; this still does not certify unmentioned conditions or all legal ri
 Preferred gaps never become hard rejection. All statuses remain separate from discovery,
 source lifecycle, notifications and application tracking. There is no global fit score.
 
-Do not encode either arm of an OR requirement as independently mandatory. Compound
-alternatives, requirements tied to a particular degree/episode, verified graduation
-completion, broader equivalence mapping and automatic semantic interpretation are not
-implemented. Leave such conditions unassessed with partial coverage until reviewed
-support exists. The tests use synthetic annotations prepared by the coding assistant;
+Do not encode either arm of an OR requirement as independently mandatory; use a
+reviewed group. General cross-condition bindings beyond the bound degree rule,
+broader equivalence mapping and automatic semantic interpretation remain unsupported.
+Leave unsupported conditions unassessed with partial coverage. Tests use synthetic annotations prepared by the coding assistant;
 independent human review and real-world eligibility accuracy measurement remain pending.
 No model call or live source check is needed to run these rules.
 
