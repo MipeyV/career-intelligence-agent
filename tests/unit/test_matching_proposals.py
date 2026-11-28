@@ -48,7 +48,8 @@ def test_supported_proposal_is_bound_but_cannot_be_used_as_an_approved_review(co
     result = replay(context)
     assert result.status == "complete" and result.fixture_reads == 1
     assert result.provider == "fixture" and result.review_required is True
-    assert result.prompt_version == "matching-proposal-v1"
+    assert result.prompt_version == "matching-proposal-v2"
+    assert result.schema_version == result.proposal_version == 2
     assert result.job_id == revision["job_id"] and result.revision == 3
     assert result.response_sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
     draft = result.draft_review

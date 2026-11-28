@@ -116,6 +116,7 @@ def main() -> None:
         )
         assert "--policy" in matching_help and "--review" in matching_help
         assert "--response-fixture" in matching_help
+        assert "--ollama" in matching_help
         matching_smoke = (
             "from pathlib import Path; "
             "from career_intelligence.config import load_configuration; "
@@ -152,6 +153,23 @@ def main() -> None:
             "assert result.draft_review['reviewed_on'] is None"
         )
         run(str(python), "-c", proposal_smoke, cwd=directory, env=env)
+        sharing_guard = (
+            "import asyncio; from pathlib import Path; "
+            "from career_intelligence.config import load_configuration, OllamaSettings; "
+            "from career_intelligence.matching import load_policy; "
+            "from career_intelligence.matching_proposals import propose_matching_local; "
+            f"loaded = load_configuration(Path({str(root / 'conf/settings.yml')!r})); "
+            f"policy = load_policy(Path({str(root / 'conf/matching.example.yml')!r})); "
+            "revision = {'job_id': 'synthetic', 'number': 1, 'fingerprint': 'a' * 64, "
+            "'payload': {}}; "
+            "result = asyncio.run(propose_matching_local(revision, loaded.profile, policy, "
+            "settings=OllamaSettings(model='synthetic:local'), "
+            "sharing=loaded.settings.matching_local, "
+            "limits=loaded.settings.matching_proposals)); "
+            "assert result.status == 'profile_sharing_disabled'; "
+            "assert result.provider_attempts == 0 and result.input_sha256 is None"
+        )
+        run(str(python), "-c", sharing_guard, cwd=directory, env=env)
         dependency_check = (
             "import importlib.util; from importlib.metadata import distribution; "
             "assert any('langchain-ollama' in item for item in "

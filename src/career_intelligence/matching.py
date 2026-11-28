@@ -14,6 +14,9 @@ from career_intelligence.config import (
     _ConfigModel,
     _load_model,
 )
+from career_intelligence.config import (
+    ProfileFieldReference as ProfileRef,
+)
 from career_intelligence.eligibility import SourceQuote, _exact_date, profile_hash
 
 MATCHING_VERSION = 1
@@ -33,16 +36,6 @@ Text = Annotated[str, Field(min_length=1, max_length=4096)]
 UnitNumber = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
 Weight = Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)]
 Notes = Annotated[list[Text], Field(max_length=16)]
-ProfileRef = Annotated[
-    str,
-    Field(
-        max_length=256,
-        pattern=(
-            r"^(education|experience|skills|languages|work_authorizations|projects|preferences)"
-            r"(?:\.(?:[a-z][a-z_]*|0|[1-9][0-9]*))*$"
-        ),
-    ),
-]
 
 
 class Rubric(_ConfigModel):
@@ -156,6 +149,29 @@ def load_matching_review(path: Path) -> MatchingReview:
     return _load(path, MatchingReview, "review")
 
 
+def profile_reference_value(profile_data, ref, *, allow_unknown=False):
+    """Resolve a validated dot path without attribute access or container expansion."""
+    value = profile_data
+    for part in ref.split("."):
+        if isinstance(value, dict) and part in value:
+            value = value[part]
+        elif (
+            isinstance(value, list) and part.isascii() and part.isdigit() and int(part) < len(value)
+        ):
+            value = value[int(part)]
+        else:
+            raise ConfigurationError("Matching references an unavailable profile field")
+    if (
+        value is None
+        and not allow_unknown
+        or isinstance(value, dict)
+        or isinstance(value, list)
+        and value != []
+    ):
+        raise ConfigurationError("Matching references need scalar facts or explicit empty lists")
+    return value
+
+
 def validate_dimension_evidence(assessment, revision, profile_data):
     """Check textual presence for a rating, without treating it as a trusted review."""
     for quote in assessment.source_evidence:
@@ -167,23 +183,7 @@ def validate_dimension_evidence(assessment, revision, profile_data):
         ):
             raise ConfigurationError("Matching review contains unsupported source evidence")
     for ref in assessment.profile_refs:
-        value = profile_data
-        for part in ref.split("."):
-            if isinstance(value, dict) and part in value:
-                value = value[part]
-            elif (
-                isinstance(value, list)
-                and part.isascii()
-                and part.isdigit()
-                and int(part) < len(value)
-            ):
-                value = value[int(part)]
-            else:
-                raise ConfigurationError("Matching review references an unavailable profile field")
-        if value is None or isinstance(value, dict) or isinstance(value, list) and value != []:
-            raise ConfigurationError(
-                "Matching references need known scalar facts or explicit empty lists"
-            )
+        profile_reference_value(profile_data, ref)
 
 
 def assess_matching(

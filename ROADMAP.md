@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1, 2.2a–c and 2.3a were merged through PRs #1-#13, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.3b adds the offline matching-proposal contract, without new dependencies, model calls or profile transmission.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1, 2.2a–c and 2.3a/b were merged through PRs #1-#14, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.3c adds gated local matching with offline transport checks; no new dependency, live matching call or private-profile transmission is introduced for this validation.
 
 ## Branches, reviews and CI/CD
 
@@ -225,9 +225,17 @@ Results bind the selected job/revision/profile/policy and prompt/input/response 
 
 Local verification on 2026-11-28 passed 582 offline tests with the extra and 557 base tests (one optional provider module intentionally skipped), Ruff lint/format, source/wheel builds and isolated base/extra wheel execution on Windows/Python 3.12.14. The 55 added cases cover input/response bounds, profile/rubric/request hashing, malformed and self-approved responses, whole-response evidence rejection, null/empty preservation, cooperative timeout/cancellation, safe diagnostics, historical selection, mandatory local review and read-only CLI behavior. The original 16-case synthetic benchmark completed and backup/restore integration tests passed. Documentation UTF-8, local links, fences and public proposal quotation spans were checked. Hosted Windows/Ubuntu CI is checked on the increment PR. No live inference/source call or model-quality measurement was performed; independent annotation review remains pending.
 
+### 2.3c: explicitly gated local matching integration
+
+Implemented on `feat/phase-2-3-local-matching`: `jobs match --ollama` uses the existing approved adapter only after local model configuration, explicit `matching_local.share_profile: true` and a unique allowlist of scalar/null/explicit-empty profile paths. Default sharing remains false. Field resolution/input budgeting precedes every provider request. Only selected `profile_facts` are supplied; unshared references invalidate the entire output. Inputs are snapshotted across the await. Loopback-only routing, local-model preflight, native schema/no repair, no tracing/credentials/proxies/redirects/retries, HTTP size bounds and pinned client cleanup remain covered offline.
+
+Proposal envelope version 2/prompt v2 add selected paths, model tag, provider attempts and a hash of model/sharing/budget configuration. Response schema and reviewed scoring remain version 1, and no output becomes an approved review automatically. Replay still transmits nothing; missing consent/extra, provider failures and invalid evidence leave deterministic discovery/scoring usable. Base/extra installed wheels exercise the disabled-sharing gate without contacting a daemon. No dependency or migration is added. See [docs/LOCAL-MATCHING.md](docs/LOCAL-MATCHING.md).
+
+Local verification on 2026-11-28 passed 628 offline tests with the extra and 584 base tests (two optional provider modules intentionally skipped), Ruff lint/format, source/wheel builds and isolated base/extra wheel checks on Windows/Python 3.12.14. The 46 added cases cover explicit consent/selection, projection/unknowns, snapshot stability, unshared-reference rejection, provider-setting hashes, missing extra, real pinned SDK mock HTTP, preflight refusal, tracing/credential suppression, response limits, timeout, client cleanup and read-only CLI behavior. The original 16-case synthetic benchmark completed and backup/restore integration tests passed. Documentation UTF-8, links and fences were checked. Hosted Windows/Ubuntu CI is checked on the increment PR. No live matching/model/source call, model download or private-profile transmission occurred; hardware/context quality and independent annotation review remain pending.
+
 ### Remaining 2.3 work (planned)
 
-Live local matching integration and explicit profile-sharing configuration/consent, automatic dimension analysis, cross-offer ranking and held-out quality/stability measurement remain planned. Exact quotes and profile paths establish presence, not semantic correctness of proposed or manually reviewed ratings. The synthetic policy is not calibrated or personalized; fixture success is not a live-model quality check. Compensation normalization/provenance remains 2.4, while persistent analysis caching and model budgets remain 2.5; these are not implied by a passing reviewed contract.
+Opt-in live matching model/hardware/context validation, independently reviewed automatic dimension analysis, cross-offer ranking and held-out quality/stability measurement remain planned. Exact quotes and profile paths establish presence, not semantic correctness of proposed or manually reviewed ratings. The synthetic policy is not calibrated or personalized; fixture/mock transport success is not a live-model quality check. Compensation normalization/provenance remains 2.4, while persistent analysis caching and model budgets remain 2.5; these are not implied by a passing reviewed contract.
 
 ## Phase 3: conditional LangGraph workflow and preparation
 

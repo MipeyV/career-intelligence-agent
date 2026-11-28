@@ -4,6 +4,8 @@
 [the reviewed matching workflow](MATCHING.md). It exercises the response/prompt
 contract needed before automatic dimension analysis. No model endpoint is selected,
 no profile is transmitted, and a fixture replay does not measure model quality.
+The separately gated [local Ollama mode](LOCAL-MATCHING.md) was added in 2.3c;
+fixture replay retains its offline behavior.
 
 ## Replay the synthetic response
 
@@ -24,7 +26,7 @@ The result envelope includes:
 
 - `status`, `provider: fixture`, `fixture_reads` and `review_required: true`;
 - job ID, revision/fingerprint, profile hash and full policy hash;
-- proposal/output version 1, prompt version `matching-proposal-v1`, input and response hashes;
+- proposal/output version 2, prompt version `matching-proposal-v2`, input and response hashes;
 - `draft_review` only after the entire response passes structural/presence validation.
 
 `fixture_reads` counts attempted reads, including an unavailable file; it is zero
@@ -76,8 +78,8 @@ Prompt instructions prohibit following source/profile instructions, invoking too
 opening references, inventing facts or generating approval metadata. No tools are
 exposed. These instructions are not a demonstrated prompt-injection or semantic-quality
 guarantee. The replay API deliberately accepts a local file path, not an arbitrary
-provider. A future live matching adapter must separately address explicit profile
-sharing configuration/consent; this increment authorizes no profile transmission.
+provider. [Local matching](LOCAL-MATCHING.md) separately requires explicit profile
+sharing and an allowlist; fixture replay itself authorizes no profile transmission.
 
 `matching_proposals` settings have independent bounds from job extraction:
 
@@ -102,11 +104,11 @@ analysis caching remain Phase 2.5 work.
 Replay exits 0 only for `complete`, and 1 for `input_limit`, `output_limit`, `timeout`,
 `fixture_unavailable`, `invalid_output` or `ungrounded_evidence`, with a safe status on
 stderr. Configuration/selection errors retain existing CLI exit conventions.
-`--response-fixture`, `--review` and `--template` are mutually exclusive; matching has
-no `--ollama` option in this increment. Discovery and reviewed scoring remain usable
+`--response-fixture`, `--review`, `--template` and `--ollama` are mutually exclusive.
+Ollama mode has its own explicit sharing checks. Discovery and reviewed scoring remain usable
 after proposal failure. SQLite, profiles and policies are read-only during replay.
 
-Live local matching integration, explicit profile-sharing policy, model-quality
-evaluation, automatic dimension analysis, cross-offer ranking, compensation provenance
+Live model-quality validation, independently reviewed automatic dimension analysis,
+cross-offer ranking, compensation provenance
 and persistent analysis budgets remain planned. Base and optional-extra CI use only
 offline fixtures and installed-wheel checks, with no live inference.

@@ -154,7 +154,9 @@ are persisted in SQLite or substituted for eligibility, filtering or source fact
 
 The [2.3b proposal contract](MATCHING-PROPOSALS.md) now supports local response replay,
 prompt/version binding and unreviewed drafts without scoring or profile transmission.
-Automatic dimension analysis, ranking across offers, compensation normalization,
-live matching integration, persistent analysis cache and measured real-world quality
+[Opt-in local matching](LOCAL-MATCHING.md) adds a separate consent/field-selection gate
+for Ollama proposals. Both paths still require local review. Independently validated
+automatic dimension analysis, ranking across offers, compensation normalization,
+persistent analysis cache and measured real-world quality
 remain planned. Synthetic fixtures/tests are coding-assistant-curated; independent
 human annotation review and held-out quality evaluation remain pending.

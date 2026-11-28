@@ -21,6 +21,16 @@ Key = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
 PositiveNumber = Annotated[float, Field(gt=0, allow_inf_nan=False)]
 NonnegativeNumber = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 ConfigPath = Annotated[Path, Field(strict=False)]
+ProfileFieldReference = Annotated[
+    str,
+    Field(
+        max_length=256,
+        pattern=(
+            r"^(education|experience|skills|languages|work_authorizations|projects|preferences)"
+            r"(?:\.(?:[a-z][a-z_]*|0|[1-9][0-9]*))*$"
+        ),
+    ),
+]
 MAX_CONFIG_BYTES = 1_048_576
 
 
@@ -354,6 +364,21 @@ class MatchingProposalLimits(ExtractionLimits):
     """Independent bounds for local matching-response replay and its input contract."""
 
 
+class MatchingLocalSettings(_ConfigModel):
+    share_profile: bool = False
+    profile_fields: Annotated[list[ProfileFieldReference], Field(max_length=128)] = Field(
+        default_factory=list
+    )
+
+    @model_validator(mode="after")
+    def explicit_selection(self) -> Self:
+        if len(set(self.profile_fields)) != len(self.profile_fields):
+            raise ValueError("shared profile fields must be unique")
+        if self.share_profile and not self.profile_fields:
+            raise ValueError("local profile sharing requires an explicit field selection")
+        return self
+
+
 class OllamaSettings(_ConfigModel):
     model: Annotated[
         str,
@@ -409,6 +434,7 @@ class Settings(_ConfigModel):
     filters: FilterPolicy = Field(default_factory=FilterPolicy)
     extraction: ExtractionLimits = Field(default_factory=ExtractionLimits)
     matching_proposals: MatchingProposalLimits = Field(default_factory=MatchingProposalLimits)
+    matching_local: MatchingLocalSettings = Field(default_factory=MatchingLocalSettings)
     ollama: OllamaSettings | None = None
 
     @field_validator("profile_file", "companies_file", "database_path", mode="before")

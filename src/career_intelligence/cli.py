@@ -25,7 +25,7 @@ from career_intelligence.matching import (
     load_policy,
     matching_template,
 )
-from career_intelligence.matching_proposals import replay_matching_proposal
+from career_intelligence.matching_proposals import propose_matching_local, replay_matching_proposal
 from career_intelligence.ollama_provider import OllamaProvider
 from career_intelligence.presentation import change_table, job_table
 from career_intelligence.preview import preview
@@ -103,6 +103,11 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Replay a local proposal response; review stays required",
     )
+    matching_mode.add_argument(
+        "--ollama",
+        action="store_true",
+        help="Propose dimensions with configured local profile sharing",
+    )
     changes_parser = commands.add_parser("changes", help="Inspect durable change events")
     changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
     changes_list = changes_commands.add_parser("list", help="List change events as JSON")
@@ -144,13 +149,24 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         loaded = load_configuration(args.config)
         if args.command == "jobs" and args.jobs_command == "match":
+            if args.ollama and loaded.settings.ollama is None:
+                raise ConfigurationError("Configure the ollama model and loopback endpoint first")
             policy = load_policy(args.policy)
             revision = get_revision(
                 loaded.settings.database_path, args.job_id, number=args.revision
             )
-            if args.response_fixture is not None:
+            if args.response_fixture is not None or args.ollama:
                 proposal = asyncio.run(
-                    replay_matching_proposal(
+                    propose_matching_local(
+                        revision,
+                        loaded.profile,
+                        policy,
+                        settings=loaded.settings.ollama,
+                        sharing=loaded.settings.matching_local,
+                        limits=loaded.settings.matching_proposals,
+                    )
+                    if args.ollama
+                    else replay_matching_proposal(
                         revision,
                         loaded.profile,
                         policy,
