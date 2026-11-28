@@ -13,6 +13,14 @@ extraction:
   max_output_tokens: 4096
   timeout_seconds: 30
 
+# Independent bounds for `jobs match --response-fixture`; local replay only.
+matching_proposals:
+  max_span_hints: 64
+  max_input_bytes: 65536
+  max_output_bytes: 131072
+  max_output_tokens: 4096
+  timeout_seconds: 30
+
 # Optional in an ignored settings copy after choosing an installed local model:
 # ollama:
 #   model: YOUR_LOCAL_MODEL

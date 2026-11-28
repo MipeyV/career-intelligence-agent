@@ -350,6 +350,10 @@ class ExtractionLimits(_ConfigModel):
     timeout_seconds: Annotated[float, Field(gt=0, le=300, allow_inf_nan=False)] = 30
 
 
+class MatchingProposalLimits(ExtractionLimits):
+    """Independent bounds for local matching-response replay and its input contract."""
+
+
 class OllamaSettings(_ConfigModel):
     model: Annotated[
         str,
@@ -404,6 +408,7 @@ class Settings(_ConfigModel):
     reconciliation: ReconciliationPolicy = Field(default_factory=ReconciliationPolicy)
     filters: FilterPolicy = Field(default_factory=FilterPolicy)
     extraction: ExtractionLimits = Field(default_factory=ExtractionLimits)
+    matching_proposals: MatchingProposalLimits = Field(default_factory=MatchingProposalLimits)
     ollama: OllamaSettings | None = None
 
     @field_validator("profile_file", "companies_file", "database_path", mode="before")

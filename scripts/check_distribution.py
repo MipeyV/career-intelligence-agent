@@ -115,6 +115,7 @@ def main() -> None:
             env=env,
         )
         assert "--policy" in matching_help and "--review" in matching_help
+        assert "--response-fixture" in matching_help
         matching_smoke = (
             "from pathlib import Path; "
             "from career_intelligence.config import load_configuration; "
@@ -132,6 +133,25 @@ def main() -> None:
             "assert result['overall_score'] is None and len(result['unassessed_dimensions']) == 9"
         )
         run(str(python), "-c", matching_smoke, cwd=directory, env=env)
+        proposal_smoke = (
+            "import asyncio, json; from pathlib import Path; "
+            "from career_intelligence.config import load_configuration; "
+            "from career_intelligence.matching import load_policy; "
+            "from career_intelligence.matching_proposals import replay_matching_proposal; "
+            f"loaded = load_configuration(Path({str(root / 'conf/settings.yml')!r})); "
+            f"policy = load_policy(Path({str(root / 'conf/matching.example.yml')!r})); "
+            f"source = json.loads(Path({str(root / 'tests/fixtures/greenhouse/matching.json')!r})"
+            ".read_text(encoding='utf-8'))['jobs'][0]; "
+            "revision = {'job_id': 'synthetic', 'number': 1, 'fingerprint': 'a' * 64, "
+            "'payload': {'description': source['content']}}; "
+            "result = asyncio.run(replay_matching_proposal(revision, loaded.profile, policy, "
+            f"Path({str(root / 'tests/fixtures/matching/proposal.json')!r}), "
+            "limits=loaded.settings.matching_proposals)); "
+            "assert result.status == 'complete' and result.review_required; "
+            "assert result.draft_review['reviewed_by'] is None; "
+            "assert result.draft_review['reviewed_on'] is None"
+        )
+        run(str(python), "-c", proposal_smoke, cwd=directory, env=env)
         dependency_check = (
             "import importlib.util; from importlib.metadata import distribution; "
             "assert any('langchain-ollama' in item for item in "
