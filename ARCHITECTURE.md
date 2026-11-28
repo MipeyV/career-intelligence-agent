@@ -4,6 +4,8 @@ Phase 1 architecture and dependencies were approved on 2026-11-25. Milestones 1.
 
 ## 1. Design and scope
 
+Phase 2.1c is also merged. Increment 2.2a adds reviewed eligibility as a deterministic read-only service, without new dependencies or a database migration.
+
 Use a modular monolith: one Python package, one CLI process, one local SQLite database, and explicit interfaces at external boundaries. Ordinary functions and small services orchestrate Phase 1. Preserve these functions when adding LangGraph later; do not build a custom agent framework now.
 
 ```mermaid
@@ -169,7 +171,9 @@ Implemented in 2.1b: a lazily imported LangChain/Ollama adapter, explicitly sele
 
 Optional OpenAI remains planned. Local inference needs no OpenAI key. No tools are exposed to a model processing job descriptions. Output can only contribute validated quoted interpretations; it cannot access secrets, execute code, or modify candidate facts. A source quote proves textual presence, not semantic correctness or prompt-injection resistance.
 
-Assess eligibility first: eligible, potentially eligible, uncertain, or not eligible, with rule-level job and candidate evidence. Cover graduation and availability precision, required experience and apprenticeship treatment, degrees/PhD, languages, work rights, geography, and deadlines. Only explicit contradictions establish hard ineligibility. Distinguish a likely bridgeable gap from insufficient evidence.
+Implemented in 2.2a: `eligibility.py` evaluates bounded, typed requirements supplied through a local review document. Review provenance, job ID/revision/fingerprint, profile hash and exact source evidence are required; model extraction output cannot be used directly as a review. `jobs eligibility --template` emits an unreviewed skeleton and evaluation requires an explicit as-of date. Calendar bounds, merged experience intervals, explicit apprenticeship policy, literal degrees/proficiency scales, declared authorization and separately attested feasible locations produce rule-level outcomes. Missing or unmapped facts remain unknown. Confirmed mandatory contradictions can produce scoped `not_eligible`; preferred gaps remain potential. Eligibility never mutates source/filter/application state. Output includes review/assessment hashes and unassessed rule families. See [the eligibility guide](docs/ELIGIBILITY.md).
+
+The current education model describes expected graduation, not verified completion; degree/compatible graduation findings therefore remain potential. Completeness assertions and feasible locations are reviewed local configuration, bound to the profile snapshot. There is no immigration-law inference, automatic semantic requirement normalization, compound-OR evaluator or global hiring-eligibility guarantee. Further 2.2 work must preserve that trust boundary instead of promoting exact LLM quotations into confirmed requirements.
 
 Evaluate technical skills, professional experience, academics, seniority, domain, location, compensation, career objectives, and entrepreneurial learning separately. Versioned rubrics produce bounded dimension scores with evidence, confidence, strengths, gaps, blockers, transferable skills, and recommendations. A deterministic function computes `sum(weight * dimension_score) / sum(weight)` for assessed dimensions; report weight coverage and withhold a final score below a configured coverage minimum. Keep missing dimensions visibly unknown. Scores measure configured fit, not hiring probability. Deadline/eligibility rules can change recommendation priority independently of fit.
 
