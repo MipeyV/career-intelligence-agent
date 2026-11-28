@@ -18,7 +18,7 @@ from career_intelligence.config import (
 )
 from career_intelligence.extraction import Evidence
 
-ELIGIBILITY_VERSION = 2
+ELIGIBILITY_VERSION = 3
 Text = Annotated[str, Field(min_length=1, max_length=4096)]
 Status = Literal["eligible", "potentially_eligible", "uncertain", "not_eligible"]
 Outcome = Literal["met", "potential", "unknown", "contradiction"]
@@ -91,15 +91,34 @@ class ExperienceRule(_Rule):
     apprenticeship_counts: bool | None = None
 
 
+class DegreeEquivalence(_ConfigModel):
+    """A local review decision for one qualification and one accepted label."""
+
+    education_index: Annotated[int, Field(ge=0)]
+    accepted_degree: Text
+    equivalent: bool
+    rationale: Text
+    evidence: Annotated[list[Text], Field(min_length=1, max_length=16)]
+
+
 class DegreeRule(_Rule):
     kind: Literal["degree"]
     accepted_degrees: Annotated[list[Text], Field(min_length=1, max_length=64)]
     completion: Literal["completed", "expected_or_completed"] | None = None
     graduation_earliest: Text | None = None
     graduation_latest: Text | None = None
+    equivalences: Annotated[list[DegreeEquivalence], Field(max_length=64)] = Field(
+        default_factory=list
+    )
 
     @model_validator(mode="after")
     def bound_degree_window(self) -> Self:
+        accepted = {_key(value) for value in self.accepted_degrees}
+        pairs = [(item.education_index, _key(item.accepted_degree)) for item in self.equivalences]
+        if len(set(pairs)) != len(pairs):
+            raise ValueError("degree equivalence pairs must be unique")
+        if any(target not in accepted for _, target in pairs):
+            raise ValueError("degree equivalences must target this rule's accepted labels")
         if self.graduation_earliest is not None or self.graduation_latest is not None:
             if self.completion is None:
                 raise ValueError("a bound degree window requires an explicit completion policy")
@@ -200,7 +219,7 @@ class CandidateAssertions(_ConfigModel):
 
 
 class ReviewedRequirements(_ConfigModel):
-    schema_version: Literal[1, 2]
+    schema_version: Literal[1, 2, 3]
     job_id: Text
     revision: Annotated[int, Field(ge=1)]
     revision_fingerprint: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
@@ -236,6 +255,8 @@ class ReviewedRequirements(_ConfigModel):
                 and rule.completion is not None
             ):
                 raise ValueError("compound or bound completion requirements need review schema 2")
+            if self.schema_version < 3 and isinstance(rule, DegreeRule) and rule.equivalences:
+                raise ValueError("reviewed degree equivalences need review schema 3")
         sections = self.candidate_assertions.complete_sections
         if len(set(sections)) != len(sections):
             raise ValueError("complete sections must be unique")
@@ -253,7 +274,7 @@ def profile_hash(profile: CandidateProfile) -> str:
 
 def review_template(revision: dict, profile: CandidateProfile) -> dict:
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "job_id": revision["job_id"],
         "revision": revision["number"],
         "revision_fingerprint": revision["fingerprint"],
@@ -310,13 +331,45 @@ def _window_outcome(low, high, earliest, latest):
 
 def _degree(profile, rule, assertions, as_of):
     accepted = {_key(value) for value in rule.accepted_degrees}
+    education = profile.education or []
+    mappings = {}
+    for mapping_index, item in enumerate(rule.equivalences):
+        if item.education_index >= len(education):
+            raise ConfigurationError("Degree equivalence references an unavailable education entry")
+        if _key(education[item.education_index].degree) == _key(item.accepted_degree):
+            raise ConfigurationError("Literal degree matches do not need equivalence decisions")
+        mappings.setdefault(item.education_index, {})[_key(item.accepted_degree)] = (
+            item.equivalent,
+            mapping_index,
+        )
     alternatives, candidates, refs = [], [], []
-    for index, item in enumerate(profile.education or []):
-        if _key(item.degree) not in accepted:
-            # Unmapped qualifications can still have unresolved equivalence.
-            alternatives.append("unknown")
-            continue
+    for index, item in enumerate(education):
+        decisions = mappings.get(index, {})
+        positive = [position for equivalent, position in decisions.values() if equivalent]
+        basis = (
+            "literal"
+            if _key(item.degree) in accepted
+            else "reviewed_equivalence"
+            if positive
+            else "reviewed_non_equivalence"
+            if accepted <= decisions.keys()
+            else "unmapped"
+        )
+        candidate = {
+            "education_index": index,
+            "match_basis": basis,
+            "equivalence_indices": sorted(
+                positive
+                if basis == "reviewed_equivalence"
+                else [position for _, position in decisions.values()]
+            ),
+        }
         refs.append(f"education.{index}")
+        if basis in ("reviewed_non_equivalence", "unmapped"):
+            outcome = "contradiction" if basis == "reviewed_non_equivalence" else "unknown"
+            alternatives.append(outcome)
+            candidates.append({**candidate, "outcome": outcome})
+            continue
         actual = None
         if item.completed is True:
             known_on = _exact_date(item.status_as_of)
@@ -363,7 +416,7 @@ def _degree(profile, rule, assertions, as_of):
                 window = "unknown"
             outcome = _combine([outcome, window])
         alternatives.append(outcome)
-        candidates.append({"education_index": index, "outcome": outcome})
+        candidates.append({**candidate, "outcome": outcome})
     complete = "education" in assertions.complete_sections
     if profile.education == [] and complete:
         return "contradiction", "no_declared_degree", ["education"], {}
@@ -590,7 +643,7 @@ def assess_eligibility(
     else:
         status = "eligible"
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "eligibility_version": ELIGIBILITY_VERSION,
         "scope": "reviewed_constraints_only",
         "status": status,

@@ -1,0 +1,13 @@
+{
+  "jobs": [
+    {
+      "id": 8301,
+      "title": "Research Engineer",
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/8301",
+      "location": {"name": "Example City"},
+      "content": "A completed MSc degree or equivalent is required.",
+      "updated_at": "2026-11-28T00:00:00Z"
+    }
+  ],
+  "meta": {"total": 1}
+}

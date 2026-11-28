@@ -7,9 +7,11 @@ introduced. Results retain `scope: reviewed_constraints_only`.
 
 ## Versions and bounded groups
 
-New templates use review schema 2. Existing flat schema-1 reviews are accepted;
-groups and explicit completion policies require schema 2. Assessment output and
-evaluator versions are now 2. Group results include nested `conditions`; atomic
+This increment introduced review schema 2. Current templates use
+[schema 3 with optional degree mappings](DEGREE-EQUIVALENCES.md), which retains these
+group semantics. Existing flat schema-1 and compound schema-2 reviews are accepted;
+groups and explicit completion policies require schema 2 or later. Assessment output
+and evaluator versions were 2 in 2.2b and are now 3. Group results include nested `conditions`; atomic
 results retain their existing fields and scoped meanings.
 
 `any_of` requires at least one feasible alternative; `all_of` requires every child.
@@ -109,7 +111,8 @@ qualification cannot combine with another qualification's forecast to pass.
 
 Each matching entry is an alternative path. Hard failure still requires a complete
 education profile without an unresolved alternative qualification. Unmapped degree
-equivalence remains unknown. A completed requirement uses dated facts at assessment
+equivalence remains unknown unless resolved by an explicit scoped schema-3 review.
+A completed requirement uses dated facts at assessment
 time. An expected-or-completed requirement may use a forecast, giving at most potential;
 an out-of-window forecast does not prove contradiction. Actual completion supersedes
 the forecast for that entry under this bound rule.

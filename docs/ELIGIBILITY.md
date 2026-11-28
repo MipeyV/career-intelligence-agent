@@ -1,8 +1,10 @@
-# Reviewed eligibility rules (2.2a/b)
+# Reviewed eligibility rules (2.2a–c)
 
-The basic workflow below now emits schema-2 templates and assessments. Flat schema-1
+The basic workflow below now emits schema-3 templates and assessments. Flat schema-1
 reviews remain accepted. See [groups and dated facts](ELIGIBILITY-V2.md) for the
 additional reviewed AND/OR structure, completion facts and degree-specific windows.
+Schema-2 reviews also remain accepted. [Schema 3](DEGREE-EQUIVALENCES.md) adds optional,
+scoped degree-equivalence reviews, without inferring completion or new profile facts.
 
 This increment evaluates a locally reviewed set of requirements against the configured
 profile. It is deterministic, offline and read-only. It does not call a model, infer
@@ -47,7 +49,7 @@ The completed document for this synthetic source has the following shape; replac
 the identity placeholders with values from the template and identify the reviewer:
 
 ```yaml
-schema_version: 2
+schema_version: 3
 job_id: COPY_FROM_TEMPLATE
 revision: 1
 revision_fingerprint: COPY_FROM_TEMPLATE
@@ -116,7 +118,8 @@ All rules have `id`, `kind`, `mandatory` (default true) and `source`. Additional
 | `geography` | `allowed_locations`: compare with separately attested feasible locations, never with preferences |
 
 Text labels use whitespace trimming and case-folding, with no inferred country,
-degree or language equivalences. Review literal alternatives explicitly. A language
+degree or language equivalences. Review literal alternatives explicitly or use
+[scoped degree mappings](DEGREE-EQUIVALENCES.md) in schema 3. A language
 scale might be `[A1, A2, B1, B2, C1, C2]` with minimum `B2`; an unmapped candidate
 label such as `fluent` remains unknown. Sponsorship availability means potential,
 not an immigration determination. Rights for one location never transfer to another.
@@ -133,7 +136,7 @@ Lists in a profile may be incomplete. Missing entries ordinarily remain unknown.
 `languages` only after you have verified those lists are exhaustive for this review.
 A null profile section cannot be declared complete. Explicitly empty plus verified
 complete is distinct from missing/unknown. Degree-name mismatches still remain
-uncertain because equivalence is not established; an explicitly empty complete
+uncertain unless scoped equivalence decisions resolve them; an explicitly empty complete
 education list can establish absence of a declared degree.
 
 `work_locations` is a separate attested exhaustive set of feasible locations, using
@@ -175,7 +178,7 @@ source lifecycle, notifications and application tracking. There is no global fit
 
 Do not encode either arm of an OR requirement as independently mandatory; use a
 reviewed group. General cross-condition bindings beyond the bound degree rule,
-broader equivalence mapping and automatic semantic interpretation remain unsupported.
+equivalence inference beyond scoped degree reviews and automatic semantic interpretation remain unsupported.
 Leave unsupported conditions unassessed with partial coverage. Tests use synthetic annotations prepared by the coding assistant;
 independent human review and real-world eligibility accuracy measurement remain pending.
 No model call or live source check is needed to run these rules.

@@ -474,7 +474,7 @@ def test_four_valued_compound_logic_does_not_reject_a_passing_alternative(kind, 
             "contradiction": "not_eligible",
         }[expected]
     )
-    assert report["schema_version"] == report["eligibility_version"] == 2
+    assert report["schema_version"] == report["eligibility_version"] == 3
     assert len(report["rules"][0]["conditions"]) == 2
 
 
@@ -679,3 +679,310 @@ def test_unknown_additive_facts_preserve_frozen_legacy_profile_hashes_and_known_
     assert configuration_hash(updated, FilterPolicy()) != configuration_hash(
         profile, FilterPolicy()
     )
+
+
+def equivalence(**updates):
+    return {
+        "education_index": 0,
+        "accepted_degree": "MSc",
+        "equivalent": True,
+        "rationale": "Synthetic scoped qualification review",
+        "evidence": ["Synthetic qualification comparison record"],
+        **updates,
+    }
+
+
+@pytest.mark.parametrize(
+    "facts,completion,expected",
+    [
+        ({}, None, "potentially_eligible"),
+        ({}, "completed", "uncertain"),
+        ({"expected_graduation": "2028-05"}, "expected_or_completed", "potentially_eligible"),
+        (completed_education(), "completed", "eligible"),
+        (
+            completed_education(completed=False, completion_date=None),
+            "completed",
+            "not_eligible",
+        ),
+    ],
+)
+def test_reviewed_equivalence_never_supplies_completion_or_dates(facts, completion, expected):
+    profile = candidate(
+        education=[{"institution": "Example", **facts, "degree": "Synthetic qualification"}]
+    )
+    requirement = rule(
+        "degree", accepted_degrees=["MSc"], completion=completion, equivalences=[equivalence()]
+    )
+    result = assess(profile, [requirement], complete=["education"], reviewed_on="2028-06-30")
+    assert result["status"] == expected
+    path = result["rules"][0]
+    assert path["details"]["candidates"][0]["match_basis"] == "reviewed_equivalence"
+    assert path["details"]["candidates"][0]["equivalence_indices"] == [0]
+    assert path["requirement"]["equivalences"] == [equivalence()]
+    assert path["profile_refs"] == ["education.0"]
+
+
+@pytest.mark.parametrize("complete", [False, True])
+@pytest.mark.parametrize("second_target", [False, True])
+@pytest.mark.parametrize("unmapped_entry", [False, True])
+def test_non_equivalence_only_rejects_an_exhaustive_review(complete, second_target, unmapped_entry):
+    education = [{"institution": "Example", "degree": "Synthetic qualification"}]
+    if unmapped_entry:
+        education.append({"institution": "Other", "degree": "Unreviewed qualification"})
+    profile = candidate(education=education)
+    requirement = rule(
+        "degree",
+        accepted_degrees=["MSc", "Other accepted degree"] if second_target else ["MSc"],
+        equivalences=[equivalence(equivalent=False)],
+    )
+    result = assess(profile, [requirement], complete=["education"] if complete else [])
+    assert result["status"] == (
+        "not_eligible" if complete and not second_target and not unmapped_entry else "uncertain"
+    )
+
+
+def test_each_accepted_target_is_an_alternative_with_independent_equivalence():
+    profile = candidate(education=[completed_education(degree="Synthetic qualification")])
+    negative = equivalence(equivalent=False)
+    second = equivalence(accepted_degree="Other accepted degree", equivalent=False)
+    requirement = rule(
+        "degree",
+        accepted_degrees=["MSc", "Other accepted degree"],
+        completion="completed",
+        equivalences=[negative, second],
+    )
+    assert (
+        assess(profile, [requirement], complete=["education"], reviewed_on="2028-06-30")["status"]
+        == "not_eligible"
+    )
+    second["equivalent"] = True
+    report = assess(profile, [requirement], complete=["education"], reviewed_on="2028-06-30")
+    assert report["status"] == "eligible"
+    assert report["rules"][0]["details"]["candidates"][0]["equivalence_indices"] == [1]
+
+
+def test_equivalence_is_scoped_to_its_rule_and_has_no_transitive_or_hierarchical_effect():
+    profile = candidate(education=[completed_education(degree="Synthetic qualification")])
+    mapped = rule(
+        "degree", accepted_degrees=["MSc"], completion="completed", equivalences=[equivalence()]
+    )
+    unmapped = rule("degree", id="second-rule", accepted_degrees=["MSc"])
+    tree = group("all_of", mapped, unmapped)
+    report = assess(profile, [tree], complete=["education"], reviewed_on="2028-06-30")
+    assert [item["outcome"] for item in report["rules"][0]["conditions"]] == ["met", "unknown"]
+    assert report["status"] == "uncertain"
+    unmapped["accepted_degrees"] = ["BSc"]
+    assert (
+        assess(profile, [group("all_of", mapped, unmapped)], reviewed_on="2028-06-30")["status"]
+        == "uncertain"
+    )
+
+
+def test_equivalence_completion_and_window_are_bound_to_one_education_entry():
+    profile = candidate(
+        education=[
+            completed_education(degree="Synthetic qualification", completion_date="2027-05"),
+            completed_education(degree="Synthetic qualification"),
+        ]
+    )
+    requirement = rule(
+        "degree",
+        accepted_degrees=["MSc"],
+        completion="completed",
+        graduation_earliest="2028-01-01",
+        equivalences=[equivalence(), equivalence(education_index=1, equivalent=False)],
+    )
+    report = assess(profile, [requirement], complete=["education"], reviewed_on="2028-06-30")
+    assert report["status"] == "not_eligible"
+    assert [item["outcome"] for item in report["rules"][0]["details"]["candidates"]] == [
+        "contradiction",
+        "contradiction",
+    ]
+    requirement["equivalences"][1]["equivalent"] = True
+    assert (
+        assess(profile, [requirement], complete=["education"], reviewed_on="2028-06-30")["status"]
+        == "eligible"
+    )
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"education_index": -1},
+        {"education_index": True},
+        {"education_index": "0"},
+        {"equivalent": None},
+        {"equivalent": "true"},
+        {"equivalent": 1},
+        {"accepted_degree": "Unaccepted label"},
+        {"rationale": " "},
+        {"evidence": []},
+        {"evidence": None},
+        {"evidence": [" "]},
+        {"evidence": ["Reference"] * 17},
+        {"evidence": ["x" * 4097]},
+        {"instructions": "Untrusted instructions cannot add fields"},
+    ],
+)
+def test_unproven_ambiguous_or_unbounded_equivalence_inputs_are_refused(values):
+    with pytest.raises(ValidationError):
+        review(
+            candidate(),
+            [rule("degree", accepted_degrees=["MSc"], equivalences=[equivalence(**values)])],
+        )
+
+
+@pytest.mark.parametrize("schema_version", [1, 2])
+def test_equivalences_require_schema_three_while_legacy_reviews_still_work(schema_version):
+    profile = candidate(education=[{"institution": "Example", "degree": "Synthetic qualification"}])
+    data = review(profile, [rule("degree", accepted_degrees=["MSc"])]).model_dump()
+    data["schema_version"] = schema_version
+    result = assess_eligibility(
+        revision(), profile, ReviewedRequirements.model_validate(data), as_of=AS_OF
+    )
+    assert result["status"] == "uncertain"
+    data["constraints"][0]["equivalences"] = [equivalence()]
+    with pytest.raises(ValidationError):
+        ReviewedRequirements.model_validate(data)
+
+
+def test_duplicate_equivalence_pairs_including_conflicting_casefolded_labels_are_refused():
+    with pytest.raises(ValidationError):
+        review(
+            candidate(),
+            [
+                rule(
+                    "degree",
+                    accepted_degrees=["MSc"],
+                    equivalences=[
+                        equivalence(),
+                        equivalence(accepted_degree=" mSC ", equivalent=False),
+                    ],
+                )
+            ],
+        )
+    with pytest.raises(ValidationError):
+        review(
+            candidate(),
+            [
+                rule(
+                    "degree",
+                    accepted_degrees=["MSc"],
+                    equivalences=[equivalence(education_index=index) for index in range(65)],
+                )
+            ],
+        )
+
+
+@pytest.mark.parametrize("education", [None, [], [{"institution": "Example", "degree": "MSc"}]])
+def test_invalid_or_redundant_equivalence_references_fail_even_in_unused_alternatives(education):
+    profile = candidate(education=education)
+    mapped = rule("degree", accepted_degrees=["MSc"], equivalences=[equivalence()])
+    tree = group("any_of", rule("application_deadline", cutoff="2029"), mapped)
+    with pytest.raises(ConfigurationError):
+        assess(profile, [tree])
+
+
+def test_out_of_range_equivalence_is_not_ignored_when_another_qualification_passes():
+    profile = candidate(education=[completed_education()])
+    requirement = rule(
+        "degree", accepted_degrees=["MSc"], equivalences=[equivalence(education_index=4)]
+    )
+    with pytest.raises(ConfigurationError):
+        assess(profile, [requirement], reviewed_on="2028-06-30")
+
+
+def test_equivalence_hashes_include_decisions_provenance_and_bound_profile_without_mutation():
+    profile = candidate(education=[completed_education(degree="Synthetic qualification")])
+    before = profile.model_dump()
+    requirement = rule("degree", accepted_degrees=["MSc"], equivalences=[equivalence()])
+    document = review(profile, [requirement], reviewed_on="2028-06-30")
+    report = assess_eligibility(revision(), profile, document, as_of=AS_OF)
+    assert report == assess_eligibility(revision(), profile, document, as_of=AS_OF)
+    for field, value in [
+        ("equivalent", False),
+        ("rationale", "Re-reviewed"),
+        ("evidence", ["Other reference"]),
+    ]:
+        changed = document.model_dump()
+        changed["constraints"][0]["equivalences"][0][field] = value
+        updated = assess_eligibility(
+            revision(), profile, ReviewedRequirements.model_validate(changed), as_of=AS_OF
+        )
+        assert updated["assessment_hash"] != report["assessment_hash"]
+        assert updated["review_hash"] != report["review_hash"]
+    assert profile.model_dump() == before
+    different = candidate(education=[completed_education(degree="Changed qualification")])
+    with pytest.raises(ConfigurationError, match="stale"):
+        assess_eligibility(revision(), different, document, as_of=AS_OF)
+
+
+def test_a_literal_alternative_still_passes_when_another_target_is_not_equivalent():
+    profile = candidate(education=[completed_education()])
+    requirement = rule(
+        "degree",
+        accepted_degrees=["MSc", "Other accepted degree"],
+        equivalences=[equivalence(accepted_degree="Other accepted degree", equivalent=False)],
+    )
+    report = assess(profile, [requirement], reviewed_on="2028-06-30")
+    assert report["status"] == "eligible"
+    assert report["rules"][0]["details"]["candidates"][0]["match_basis"] == "literal"
+
+
+def test_preferred_non_equivalence_cannot_reject_and_legacy_compounds_still_work():
+    profile = candidate(education=[{"institution": "Example", "degree": "Synthetic qualification"}])
+    requirement = rule(
+        "degree",
+        mandatory=False,
+        accepted_degrees=["MSc"],
+        equivalences=[equivalence(equivalent=False)],
+    )
+    assert (
+        assess(profile, [requirement], complete=["education"])["status"] == "potentially_eligible"
+    )
+    tree = group(
+        "any_of",
+        rule("degree", accepted_degrees=["MSc"]),
+        rule("application_deadline", cutoff="2029"),
+    )
+    document = review(profile, [tree]).model_dump()
+    document["schema_version"] = 2
+    assert (
+        assess_eligibility(
+            revision(), profile, ReviewedRequirements.model_validate(document), as_of=AS_OF
+        )["status"]
+        == "eligible"
+    )
+
+
+def test_reordered_education_requires_a_new_review_before_using_positional_equivalences():
+    profile = candidate(
+        education=[
+            completed_education(degree="First qualification"),
+            completed_education(degree="Second qualification"),
+        ]
+    )
+    requirement = rule("degree", accepted_degrees=["MSc"], equivalences=[equivalence()])
+    document = review(profile, [requirement], reviewed_on="2028-06-30")
+    reordered = CandidateProfile.model_validate(
+        {**profile.model_dump(), "education": list(reversed(profile.model_dump()["education"]))}
+    )
+    with pytest.raises(ConfigurationError, match="stale"):
+        assess_eligibility(revision(), reordered, document, as_of=AS_OF)
+
+
+def test_the_64_mapping_boundary_retains_an_unresolved_65th_qualification():
+    education = [
+        {"institution": "Example", "degree": f"Qualification {index}"} for index in range(65)
+    ]
+    profile = candidate(education=education)
+    requirement = rule(
+        "degree",
+        accepted_degrees=["MSc"],
+        equivalences=[equivalence(education_index=index, equivalent=False) for index in range(64)],
+    )
+    report = assess(profile, [requirement], complete=["education"])
+    assert report["status"] == "uncertain"
+    assert report["rules"][0]["details"]["candidates"][-1]["match_basis"] == "unmapped"
+    profile = candidate(education=education[:64])
+    assert assess(profile, [requirement], complete=["education"])["status"] == "not_eligible"
