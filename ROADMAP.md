@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1 and 2.2a–c were merged through PRs #1-#12, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.3a adds the reviewed multidimensional matching contract, without new dependencies or model calls.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1, 2.2a–c and 2.3a were merged through PRs #1-#13, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.3b adds the offline matching-proposal contract, without new dependencies, model calls or profile transmission.
 
 ## Branches, reviews and CI/CD
 
@@ -217,9 +217,17 @@ Deterministic rational arithmetic calculates a weighted mean over included dimen
 
 Local verification on 2026-11-28 passed 527 offline tests with the extra and 502 base tests (one optional provider module intentionally skipped), Ruff lint/format, source/wheel builds and isolated base/extra wheel execution on Windows/Python 3.12.14. The 92 added cases cover level/weight contracts, missing facts, confidence/coverage boundaries before rounding, extreme finite weights, stale bindings, evidence validation even for excluded dimensions, safe/redacted loaders, null/empty preservation, historical revisions and read-only CLI behavior. The original 16-case synthetic benchmark completed and backup/restore integration tests passed. Documentation UTF-8, local links, fences and the example quotation span were checked. Hosted Windows/Ubuntu CI is checked on the increment PR; no live model or source was called. Independent annotation review remains pending.
 
+### 2.3b: offline matching proposals and review boundary
+
+Implemented on `feat/phase-2-3-matching-proposals`: `jobs match --response-fixture` exercises a versioned nine-dimension response/prompt contract using one bounded local file replay. The in-memory request contains selected posting fields, bounded hints, validated profile and rubric definitions; no endpoint or profile-sharing option is exposed. Full request bytes/system/schema/options are hashed and budgeted before replay, with independent `matching_proposals` settings. Strict JSON and shared source/profile-presence validation discard a malformed or unsupported response as a whole. Cancellation propagates; timeout is cooperative and does not preempt blocking filesystem I/O.
+
+Results bind the selected job/revision/profile/policy and prompt/input/response hashes. Their draft review has null reviewer metadata and no aggregate score; both envelope and draft are rejected as an approved matching review. Model-supplied review metadata, policy overrides and global scores are refused. Null/empty distinctions and unknown pay remain visible. Keep the envelope locally for provenance; later reviewed assessments do not embed it. Discovery and existing reviewed scoring survive replay failures. No dependency, migration, model call, profile transmission or evidence-file lookup is introduced. Installed-wheel validation exercises this fixture replay in both base/extra environments. See [docs/MATCHING-PROPOSALS.md](docs/MATCHING-PROPOSALS.md).
+
+Local verification on 2026-11-28 passed 582 offline tests with the extra and 557 base tests (one optional provider module intentionally skipped), Ruff lint/format, source/wheel builds and isolated base/extra wheel execution on Windows/Python 3.12.14. The 55 added cases cover input/response bounds, profile/rubric/request hashing, malformed and self-approved responses, whole-response evidence rejection, null/empty preservation, cooperative timeout/cancellation, safe diagnostics, historical selection, mandatory local review and read-only CLI behavior. The original 16-case synthetic benchmark completed and backup/restore integration tests passed. Documentation UTF-8, local links, fences and public proposal quotation spans were checked. Hosted Windows/Ubuntu CI is checked on the increment PR. No live inference/source call or model-quality measurement was performed; independent annotation review remains pending.
+
 ### Remaining 2.3 work (planned)
 
-Automatic dimension analysis with grounded interpretations, provider/prompt contracts, cross-offer ranking and held-out quality/stability measurement remain planned. Exact quotes and profile paths establish presence, not semantic correctness of the manually reviewed ratings. The synthetic policy is not calibrated or personalized. Compensation normalization/provenance remains 2.4, while persistent analysis caching and model budgets remain 2.5; these are not implied by a passing reviewed contract.
+Live local matching integration and explicit profile-sharing configuration/consent, automatic dimension analysis, cross-offer ranking and held-out quality/stability measurement remain planned. Exact quotes and profile paths establish presence, not semantic correctness of proposed or manually reviewed ratings. The synthetic policy is not calibrated or personalized; fixture success is not a live-model quality check. Compensation normalization/provenance remains 2.4, while persistent analysis caching and model budgets remain 2.5; these are not implied by a passing reviewed contract.
 
 ## Phase 3: conditional LangGraph workflow and preparation
 

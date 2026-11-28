@@ -156,7 +156,8 @@ def load_matching_review(path: Path) -> MatchingReview:
     return _load(path, MatchingReview, "review")
 
 
-def _validate_assessment(assessment, revision, profile_data):
+def validate_dimension_evidence(assessment, revision, profile_data):
+    """Check textual presence for a rating, without treating it as a trusted review."""
     for quote in assessment.source_evidence:
         value = revision["payload"].get(quote.evidence.field)
         if (
@@ -219,7 +220,7 @@ def assess_matching(
         score = None
         if assessment is not None:
             # Validate every assessment, even if confidence/weight excludes it.
-            _validate_assessment(assessment, revision, profile_data)
+            validate_dimension_evidence(assessment, revision, profile_data)
             score = assessment.level * 25
             confidence = Fraction(str(assessment.confidence))
             if weight == 0:

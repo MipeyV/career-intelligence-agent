@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Phase 1 architecture and dependencies were approved on 2026-11-25. Phase 1, 2.1 and 2.2a–c are merged; 2.3a adds the reviewed matching contract. The optional Ollama dependency set was approved on 2026-11-27. Offline HTTP-contract validation is complemented by one successful short synthetic local case on 2026-11-28, with unsuccessful trials recorded separately. General model quality and later intelligent services remain to be validated or implemented.
+Phase 1 architecture and dependencies were approved on 2026-11-25. Phase 1, 2.1, 2.2a–c and 2.3a are merged; 2.3b adds the offline matching-proposal contract. The optional Ollama dependency set was approved on 2026-11-27. Offline HTTP-contract validation is complemented by one successful short synthetic local case on 2026-11-28, with unsuccessful trials recorded separately. General model quality and later intelligent services remain to be validated or implemented.
 
 ## 1. Design and scope
 
@@ -35,6 +35,7 @@ src/career_intelligence/
     config.py                 # safe YAML loading and validation
     eligibility.py            # implemented reviewed eligibility service
     matching.py               # implemented reviewed dimension contract and aggregation
+    matching_proposals.py     # unreviewed proposal validation; local response replay only
     schemas/                  # posting, snapshot, event, profile contracts
     connectors/               # protocol, HTTP policy, Greenhouse adapter
     processing/               # normalization, identity, changes, filters
@@ -47,7 +48,7 @@ tests/
 docs/                         # operational notes when implementation begins
 ```
 
-The layout above is a boundary proposal; implemented domain services use flat modules, including `extraction.py`, `ollama_provider.py`, `eligibility.py`, `matching.py` and `evaluation.py`. Future packages such as `workflows/` and `notifications/` are added when used. Avoid empty abstractions for every possible SaaS feature.
+The layout above is a boundary proposal; implemented domain services use flat modules, including `extraction.py`, `ollama_provider.py`, `eligibility.py`, `matching.py`, `matching_proposals.py` and `evaluation.py`. Future packages such as `workflows/` and `notifications/` are added when used. Avoid empty abstractions for every possible SaaS feature.
 
 ## 3. Boundary contracts
 
@@ -187,7 +188,9 @@ Implemented in 2.3a: `matching.py` defines nine explicit dimensions (technical s
 
 The reviewed levels 0–4 map to 0–100 and ordinary deterministic code computes `sum(weight * dimension_score) / sum(weight)` over dimensions with positive weight and sufficient declared confidence. Coverage is their weight divided by all configured weight. Missing dimensions stay null; an overall score is withheld below minimum coverage or with no included weight. Standard-library rational arithmetic avoids rounding-dependent gates; output rounding occurs afterward. Weighted confidence remains an uncalibrated reviewer declaration. The linear rubric scale and synthetic example weights are conventions, not measured quality. Separate versioned contracts/hashes permit later provider or cache integration without treating model output as a trusted review. See [the matching contract](docs/MATCHING.md).
 
-Automatic semantic assessment, multi-job ranking and measured matching quality remain planned. Scores measure configured fit, not hiring probability. Eligibility and deadlines remain separate and may later change recommendation priority independently of fit.
+Implemented in 2.3b: `matching_proposals.py` defines a versioned response schema and constructs a prompt/request only in memory using selected posting fields, bounded source hints, the validated profile and rubric definitions. Its replay API accepts a local path rather than a provider endpoint. Independent `matching_proposals` settings bound the full serialized input (including system/schema/options), response bytes and one cooperative attempt, without retries or profile transmission. Strict JSON and the shared dimension-evidence validator reject an entire unsupported response. Output binds job/revision/profile/policy, input/response hashes and prompt version, and exposes only an unreviewed draft with null reviewer metadata. No aggregate score or approval is generated. Both draft and envelope are rejected by the reviewed matching boundary. Retain the envelope locally for provenance; it is not embedded in a later manually reviewed assessment. See [the proposal contract](docs/MATCHING-PROPOSALS.md).
+
+Automatic semantic assessment, live matching adapters/profile-sharing configuration, multi-job ranking and measured matching quality remain planned. Fixture success establishes structural/textual compatibility only. Scores measure configured fit, not hiring probability. Eligibility and deadlines remain separate and may later change recommendation priority independently of fit.
 
 Separate employer-disclosed base, bonus, equity, signing bonus, and total compensation; external benchmarks and estimates carry their own provenance, date, currency, confidence, and annualization assumptions. No invented salary or silent substitution of a benchmark for employer pay.
 

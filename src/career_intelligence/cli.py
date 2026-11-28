@@ -25,6 +25,7 @@ from career_intelligence.matching import (
     load_policy,
     matching_template,
 )
+from career_intelligence.matching_proposals import replay_matching_proposal
 from career_intelligence.ollama_provider import OllamaProvider
 from career_intelligence.presentation import change_table, job_table
 from career_intelligence.preview import preview
@@ -97,6 +98,11 @@ def main(argv: list[str] | None = None) -> int:
     matching_mode = matching_parser.add_mutually_exclusive_group(required=True)
     matching_mode.add_argument("--template", action="store_true")
     matching_mode.add_argument("--review", type=Path)
+    matching_mode.add_argument(
+        "--response-fixture",
+        type=Path,
+        help="Replay a local proposal response; review stays required",
+    )
     changes_parser = commands.add_parser("changes", help="Inspect durable change events")
     changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
     changes_list = changes_commands.add_parser("list", help="List change events as JSON")
@@ -142,6 +148,25 @@ def main(argv: list[str] | None = None) -> int:
             revision = get_revision(
                 loaded.settings.database_path, args.job_id, number=args.revision
             )
+            if args.response_fixture is not None:
+                proposal = asyncio.run(
+                    replay_matching_proposal(
+                        revision,
+                        loaded.profile,
+                        policy,
+                        args.response_fixture,
+                        limits=loaded.settings.matching_proposals,
+                    )
+                )
+                print(proposal.model_dump_json())
+                if proposal.status != "complete":
+                    print(
+                        json.dumps(
+                            {"event": "matching_proposal_failed", "status": proposal.status}
+                        ),
+                        file=sys.stderr,
+                    )
+                return 0 if proposal.status == "complete" else 1
             result = (
                 matching_template(revision, loaded.profile, policy)
                 if args.template

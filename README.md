@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Phase 1, 2.1 and 2.2a–c merged; reviewed matching contract (2.3a) implemented.** The deterministic MVP includes discovery, history, filtering, recovery and synthetic evaluation. Reviewed eligibility supports bounded AND/OR groups, dated education/employment facts and scoped qualification equivalences. Matching now aggregates nine locally reviewed dimensions using versioned rubrics, explicit weights, confidence and coverage gates. These are local user attestations, not independent verification or automatic semantic ratings. Structured extraction supports fixtures and optional local Ollama; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
+**Phase 1, 2.1, 2.2a–c and 2.3a merged; offline matching proposals (2.3b) implemented.** The deterministic MVP includes discovery, history, filtering, recovery and synthetic evaluation. Reviewed eligibility supports bounded AND/OR groups, dated education/employment facts and scoped qualification equivalences. Matching aggregates nine locally reviewed dimensions using versioned rubrics, explicit weights, confidence and coverage gates. Local response replay now prepares validated-but-unreviewed matching drafts; it neither calls a model nor transmits the profile. These remain local attestations/interpretations, not independent verification or automatic semantic ratings. Structured job extraction supports fixtures and optional local Ollama; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -120,6 +120,8 @@ uv run --locked --offline career-intelligence jobs match --config conf/matching-
 ```
 
 See [the matching guide](docs/MATCHING.md) to prepare those synthetic demo files and review the evidence. The [example policy](conf/matching.example.yml) is not personalized or calibrated. Matching does not call a model, persist analysis, rank all jobs or alter source/filter/application state; automatic dimension analysis remains planned.
+
+For the next-stage response contract, `jobs match --response-fixture tests/fixtures/matching/proposal.json` replaces `--template`/`--review` using the same config/job/policy arguments. It emits an envelope with input/response hashes, prompt version and an unreviewed `draft_review`, without a score. Both the envelope and its draft are refused as an approved review. See [the proposal guide](docs/MATCHING-PROPOSALS.md) for local replay, budgets and the mandatory review boundary. No live matching provider or profile-sharing option is introduced.
 
 ## Preview job collection
 

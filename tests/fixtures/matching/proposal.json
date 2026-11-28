@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "assessments": {
+    "technical_skills": {
+      "level": 3,
+      "confidence": 0.8,
+      "rationale": "Synthetic Python overlap within the reviewed task scope",
+      "source_evidence": [
+        {
+          "text": "Build Python services",
+          "evidence": {"field": "description", "start": 0, "end": 21}
+        }
+      ],
+      "profile_refs": ["skills.0.name", "skills.0.evidence.0"],
+      "strengths": ["Declared Python project evidence"],
+      "gaps": null,
+      "blockers": null,
+      "transferable_skills": [],
+      "recommendations": null
+    },
+    "professional_experience": null,
+    "academics": null,
+    "seniority": null,
+    "domain": null,
+    "location": null,
+    "compensation": null,
+    "career_objectives": null,
+    "entrepreneurial_learning": null
+  }
+}

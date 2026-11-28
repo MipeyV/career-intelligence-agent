@@ -152,7 +152,9 @@ Changes to the job revision, profile, weights, anchors, thresholds or versions r
 a fresh review. Review provenance and notes enter the assessment hash. No results
 are persisted in SQLite or substituted for eligibility, filtering or source facts.
 
+The [2.3b proposal contract](MATCHING-PROPOSALS.md) now supports local response replay,
+prompt/version binding and unreviewed drafts without scoring or profile transmission.
 Automatic dimension analysis, ranking across offers, compensation normalization,
-model/prompt integration, persistent analysis cache and measured real-world quality
+live matching integration, persistent analysis cache and measured real-world quality
 remain planned. Synthetic fixtures/tests are coding-assistant-curated; independent
 human annotation review and held-out quality evaluation remain pending.
