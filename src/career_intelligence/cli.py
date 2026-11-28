@@ -11,6 +11,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from career_intelligence import __version__
 from career_intelligence.backup import copy_database
 from career_intelligence.config import ConfigurationError, load_configuration
+from career_intelligence.eligibility import (
+    _exact_date,
+    assess_eligibility,
+    load_review,
+    review_template,
+)
 from career_intelligence.extraction import FixtureProvider, extract_revision
 from career_intelligence.filtering import configuration_hash
 from career_intelligence.ollama_provider import OllamaProvider
@@ -65,6 +71,16 @@ def main(argv: list[str] | None = None) -> int:
     extraction_mode.add_argument(
         "--ollama", action="store_true", help="Call configured local Ollama"
     )
+    eligibility_parser = jobs_commands.add_parser(
+        "eligibility", help="Assess locally reviewed requirements without changing job state"
+    )
+    eligibility_parser.add_argument("--config", type=Path, required=True)
+    eligibility_parser.add_argument("--job-id", required=True)
+    eligibility_parser.add_argument("--revision", type=int)
+    eligibility_mode = eligibility_parser.add_mutually_exclusive_group(required=True)
+    eligibility_mode.add_argument("--template", action="store_true")
+    eligibility_mode.add_argument("--requirements", type=Path)
+    eligibility_parser.add_argument("--as-of", help="Exact YYYY-MM-DD assessment date")
     changes_parser = commands.add_parser("changes", help="Inspect durable change events")
     changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
     changes_list = changes_commands.add_parser("list", help="List change events as JSON")
@@ -86,6 +102,12 @@ def main(argv: list[str] | None = None) -> int:
     restore_parser.add_argument("--backup", type=Path, required=True)
     restore_parser.add_argument("--destination", type=Path, required=True)
     args = parser.parse_args(argv)
+    assessment_date = None
+    if args.command == "jobs" and args.jobs_command == "eligibility" and not args.template:
+        try:
+            assessment_date = _exact_date(args.as_of or "")
+        except ValueError:
+            eligibility_parser.error("--as-of requires an exact YYYY-MM-DD date")
     if args.command == "collect" and args.source is not None and not args.live:
         collect_parser.error("--source requires --live")
     selected_decisions = None
@@ -99,6 +121,19 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"event": "database_restored", **restored}))
             return 0
         loaded = load_configuration(args.config)
+        if args.command == "jobs" and args.jobs_command == "eligibility":
+            revision = get_revision(
+                loaded.settings.database_path, args.job_id, number=args.revision
+            )
+            result = (
+                review_template(revision, loaded.profile)
+                if args.template
+                else assess_eligibility(
+                    revision, loaded.profile, load_review(args.requirements), as_of=assessment_date
+                )
+            )
+            print(json.dumps(result))
+            return 0
         if args.command == "jobs" and args.jobs_command == "extract":
             if args.ollama and loaded.settings.ollama is None:
                 raise ConfigurationError("Configure the ollama model and loopback endpoint first")

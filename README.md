@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Phase 1 and 2.1a/b merged; local smoke validation implemented.** The deterministic MVP includes discovery, persistence, lifecycle tracking, explained filtering, backup/restore commands and a reproducible synthetic benchmark. Structured extraction supports offline response fixtures and an optional local Ollama adapter. One short synthetic live case passed on an already installed model after bounded source-span hints were added; broader model quality remains unmeasured. No model is configured by default. The default watchlist contains 39 companies with live collection disabled. The benchmark's annotations still require independent human review.
+**Phase 1 and 2.1 merged; reviewed eligibility rules (2.2a) implemented.** The deterministic MVP includes discovery, history, explained filtering, recovery and synthetic evaluation. Structured extraction supports fixtures and optional local Ollama. Eligibility now evaluates reviewed, source-bound requirements locally against the configured profile, with explicit unknowns and no automatic rejection from discovery. One short synthetic inference case passed; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -93,6 +93,16 @@ Copy `conf/profile.example.yml` to `conf/profile.local.yml`, replace the synthet
 Dates accept `YYYY`, `YYYY-MM` and `YYYY-MM-DD` text and preserve precision; quote a year such as `"2028"` so YAML does not treat it as an integer. Unknown facts use null. The loader rejects unknown fields, duplicate keys, aliases, custom YAML tags, invalid dates/limits and files larger than 1 MiB. It accepts UTF-8 with or without a byte-order mark.
 
 Companies can be added without a connector when `disabled_reason` explains why collection is disabled. An enabled source requires a unique key, provider `greenhouse`, a board token and an attributable HTTPS careers URL. Other provider names can be documented as disabled future integrations.
+
+## Reviewed eligibility
+
+`jobs eligibility --template` prepares an unreviewed requirements document bound to a job revision and current profile. After reviewing the source quotes and requirement meanings locally, assess it with an explicit calendar date:
+
+```text
+uv run --locked --offline career-intelligence jobs eligibility --config conf/settings.local.yml --job-id JOB_ID --requirements data/review.local.yml --as-of 2026-11-28
+```
+
+The scoped result is `eligible`, `potentially_eligible`, `uncertain` or `not_eligible`, with rule evidence, reasons and hashes. Missing facts remain unknown; no model or network is invoked and SQLite is unchanged. Status applies only to reviewed constraints and does not certify legal eligibility. See [the eligibility guide](docs/ELIGIBILITY.md) for a complete synthetic demonstration, supported rule types, review/completeness assertions and remaining limitations.
 
 ## Preview job collection
 
@@ -202,4 +212,4 @@ The initial documentation baseline was the authorized direct push to `main`. Eve
 
 `.github/workflows/ci.yml` checks PRs to `main` and pushes to `main`: locked installation, Ruff lint/format, Pytest on Windows and Linux, package build and isolated wheel installation. Actions are pinned to verified commit SHAs with read-only repository permissions. The workflow is defined here; its observed run results are reported on the PR. Configuring required branch checks is a separate repository setting; this change does not claim to enable branch protection.
 
-Phase 1 and Phase 2.1a/b are merged. A short live synthetic compatibility check passed on qwen2.5-coder:7b; general extraction quality, independent annotation review and a broader real-source held-out benchmark remain pending. Eligibility and matching follow in later Phase 2 milestones. Delivery automation follows in Phase 4 with Docker and a separately chosen release target.
+Phase 1 and Phase 2.1 are merged. Phase 2.2a implements deterministic reviewed eligibility; automatic semantic normalization, compound conditions and verified completion semantics remain planned. A short local synthetic inference check passed, while general extraction/eligibility quality and a real-source held-out benchmark remain pending. Matching follows in 2.3; delivery automation follows in Phase 4 with a separately chosen release target.

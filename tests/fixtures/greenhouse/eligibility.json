@@ -1,0 +1,12 @@
+{
+  "jobs": [
+    {
+      "id": 301,
+      "title": "Research Engineer",
+      "absolute_url": "https://example.com/synthetic-deadline-role",
+      "location": {"name": "Example City"},
+      "content": "<p>Apply by 2028-06-30.</p>"
+    }
+  ],
+  "meta": {"total": 1}
+}

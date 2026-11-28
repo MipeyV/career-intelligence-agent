@@ -93,6 +93,17 @@ def main() -> None:
         )
         assert "--response-fixture" in extraction_help
         assert "--ollama" in extraction_help
+        eligibility_help = run(
+            str(python),
+            "-c",
+            entry_point_script,
+            "jobs",
+            "eligibility",
+            "--help",
+            cwd=directory,
+            env=env,
+        )
+        assert "--requirements" in eligibility_help and "--template" in eligibility_help
         dependency_check = (
             "import importlib.util; from importlib.metadata import distribution; "
             "assert any('langchain-ollama' in item for item in "

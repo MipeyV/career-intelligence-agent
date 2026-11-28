@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a/b were merged through PRs #1-#8, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. The following increment adds explicit synthetic live validation and deterministic span hints; no model download is included.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6 and 2.1a/b/c were merged through PRs #1-#9, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. The next increment implements reviewed deterministic eligibility (2.2a), without new dependencies or model calls.
 
 ## Branches, reviews and CI/CD
 
@@ -180,6 +180,18 @@ On 2026-11-28, qwen3:8b timed out at 90 seconds, and qwen2.5-coder:7b returned u
 Local offline verification on 2026-11-28 passed 258 tests with the extra and 233 base tests, with the optional provider integration module intentionally skipped in the base variant. Ruff lint/format, package build, isolated wheel validation and the original synthetic benchmark passed. Hosted base/extra Windows/Ubuntu checks are verified on the increment PR. Default CI has no live inference.
 
 Gate: annotated relevant/irrelevant/ambiguous cases; hallucinated evidence rejected; local provider works with no OpenAI key; remote provider remains optional; malformed/model-unavailable/budget-exhausted paths retain deterministic behavior. Matching is reproducible for fixed dimension inputs and never described as hiring probability. CV enrichment is opt-in and cannot silently turn inferred facts into verified skills.
+
+### 2.2a: reviewed deterministic eligibility
+
+Implemented on `feat/phase-2-2-eligibility`: read-only `jobs eligibility` evaluates explicitly reviewed source constraints against a bound profile snapshot and selected immutable job revision. A template defaults to unreviewed/partial and cannot be mistaken for an approved requirement set. Exact quotes, safe bounded YAML, review provenance and explicit assessment dates are validated. Output gives scoped statuses, per-rule evidence/reasons, versioned hashes and uncovered rule families.
+
+Rules cover availability/deadline intervals, expected graduation windows, merged experience bounds with explicit apprenticeship treatment, literal degrees, configured language scales, declared work-authorization status and attested feasible locations. Missing facts, partial dates, uncertain experience credit, incomplete profiles and unmapped equivalences remain reviewable. Degree completion is not invented. Preferred gaps cannot cause hard ineligibility. There is no mutation of job state or candidate facts, no network/model call and no schema migration. See [docs/ELIGIBILITY.md](docs/ELIGIBILITY.md).
+
+Local verification on 2026-11-28 passed 325 offline tests with the extra and 300 base tests, with the optional provider integration module intentionally skipped in the base variant. Ruff lint/format, source/wheel builds, isolated base/extra wheel validation, the original synthetic benchmark and documentation checks passed on Windows/Python 3.12.14. Hosted Windows/Ubuntu CI is checked on the increment PR. No live model or source call was run for this increment; synthetic eligibility annotations still require independent review.
+
+### Remaining 2.2 work (planned)
+
+Compound alternatives and cross-condition bindings, verified completed/ongoing profile facts, broader equivalence handling and any automatic semantic normalization require their own reviewed contracts and tests. The reviewed rule engine does not establish real-world eligibility accuracy or replace verification of legal/work rights. Independent annotation review and a held-out benchmark remain pending; scoring and compensation stay in 2.3/2.4.
 
 ## Phase 3: conditional LangGraph workflow and preparation
 
