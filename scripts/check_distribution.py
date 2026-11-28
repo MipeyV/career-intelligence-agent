@@ -104,6 +104,34 @@ def main() -> None:
             env=env,
         )
         assert "--requirements" in eligibility_help and "--template" in eligibility_help
+        matching_help = run(
+            str(python),
+            "-c",
+            entry_point_script,
+            "jobs",
+            "match",
+            "--help",
+            cwd=directory,
+            env=env,
+        )
+        assert "--policy" in matching_help and "--review" in matching_help
+        matching_smoke = (
+            "from pathlib import Path; "
+            "from career_intelligence.config import load_configuration; "
+            "from career_intelligence.matching import load_policy, matching_template, "
+            "MatchingReview, assess_matching; "
+            f"profile = load_configuration(Path({str(root / 'conf/settings.yml')!r})).profile; "
+            f"policy = load_policy(Path({str(root / 'conf/matching.example.yml')!r})); "
+            "revision = {'job_id': 'synthetic', 'number': 1, "
+            "'fingerprint': 'a' * 64, 'payload': {}}; "
+            "document = matching_template(revision, profile, policy); "
+            "document.update(reviewed_by='synthetic-wheel-check', reviewed_on='2026-11-28'); "
+            "result = assess_matching(revision, profile, policy, "
+            "MatchingReview.model_validate(document)); "
+            "assert result['status'] == 'insufficient_coverage'; "
+            "assert result['overall_score'] is None and len(result['unassessed_dimensions']) == 9"
+        )
+        run(str(python), "-c", matching_smoke, cwd=directory, env=env)
         dependency_check = (
             "import importlib.util; from importlib.metadata import distribution; "
             "assert any('langchain-ollama' in item for item in "

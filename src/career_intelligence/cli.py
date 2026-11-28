@@ -19,6 +19,12 @@ from career_intelligence.eligibility import (
 )
 from career_intelligence.extraction import FixtureProvider, extract_revision
 from career_intelligence.filtering import configuration_hash
+from career_intelligence.matching import (
+    assess_matching,
+    load_matching_review,
+    load_policy,
+    matching_template,
+)
 from career_intelligence.ollama_provider import OllamaProvider
 from career_intelligence.presentation import change_table, job_table
 from career_intelligence.preview import preview
@@ -81,6 +87,16 @@ def main(argv: list[str] | None = None) -> int:
     eligibility_mode.add_argument("--template", action="store_true")
     eligibility_mode.add_argument("--requirements", type=Path)
     eligibility_parser.add_argument("--as-of", help="Exact YYYY-MM-DD assessment date")
+    matching_parser = jobs_commands.add_parser(
+        "match", help="Aggregate locally reviewed dimension ratings without changing job state"
+    )
+    matching_parser.add_argument("--config", type=Path, required=True)
+    matching_parser.add_argument("--job-id", required=True)
+    matching_parser.add_argument("--revision", type=int)
+    matching_parser.add_argument("--policy", type=Path, required=True)
+    matching_mode = matching_parser.add_mutually_exclusive_group(required=True)
+    matching_mode.add_argument("--template", action="store_true")
+    matching_mode.add_argument("--review", type=Path)
     changes_parser = commands.add_parser("changes", help="Inspect durable change events")
     changes_commands = changes_parser.add_subparsers(dest="changes_command", required=True)
     changes_list = changes_commands.add_parser("list", help="List change events as JSON")
@@ -121,6 +137,20 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"event": "database_restored", **restored}))
             return 0
         loaded = load_configuration(args.config)
+        if args.command == "jobs" and args.jobs_command == "match":
+            policy = load_policy(args.policy)
+            revision = get_revision(
+                loaded.settings.database_path, args.job_id, number=args.revision
+            )
+            result = (
+                matching_template(revision, loaded.profile, policy)
+                if args.template
+                else assess_matching(
+                    revision, loaded.profile, policy, load_matching_review(args.review)
+                )
+            )
+            print(json.dumps(result))
+            return 0
         if args.command == "jobs" and args.jobs_command == "eligibility":
             revision = get_revision(
                 loaded.settings.database_path, args.job_id, number=args.revision

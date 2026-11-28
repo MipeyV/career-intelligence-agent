@@ -78,6 +78,8 @@ jobs:
         run: uv run --locked --offline career-intelligence jobs extract --help
       - name: Check reviewed eligibility CLI availability
         run: uv run --locked --offline career-intelligence jobs eligibility --help
+      - name: Check reviewed matching CLI availability
+        run: uv run --locked --offline career-intelligence jobs match --help
       - name: Check opt-in smoke command help without inference
         run: uv run --locked --offline python scripts/smoke_ollama.py --help
       - run: uv build --no-build-isolation --offline
