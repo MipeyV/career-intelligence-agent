@@ -7,6 +7,7 @@ database_path: ../data/career-intelligence.sqlite3
 
 # Used only by the explicit `jobs extract` command. No model is configured by default.
 extraction:
+  max_span_hints: 64
   max_input_bytes: 65536
   max_output_bytes: 131072
   max_output_tokens: 4096

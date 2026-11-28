@@ -282,6 +282,7 @@ class FilterPolicy(_ConfigModel):
 
 
 class ExtractionLimits(_ConfigModel):
+    max_span_hints: Annotated[int, Field(ge=0, le=256)] = 64
     max_input_bytes: Annotated[int, Field(ge=1, le=1_048_576)] = 65_536
     max_output_bytes: Annotated[int, Field(ge=1, le=1_048_576)] = 131_072
     max_output_tokens: Annotated[int, Field(ge=1, le=32768)] = 4096

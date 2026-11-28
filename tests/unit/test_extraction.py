@@ -73,7 +73,7 @@ def test_grounded_facts_bind_to_revision_and_expose_only_selected_fields():
     assert result.extraction.compensation is None
     assert len(provider.requests) == result.provider_attempts == 1
     request = provider.requests[0]
-    assert set(json.loads(request.content)) == {"title", "location", "description"}
+    assert set(json.loads(request.content)) == {"title", "location", "description", "span_hints"}
     assert "PRIVATE_RAW" not in request.content
     assert "https://" not in request.content
     assert request.max_output_tokens == 4096
@@ -94,6 +94,35 @@ def test_null_and_explicit_empty_keep_distinct_meanings():
     assert result.extraction.language_requirements.items == []
     data["language_requirements"]["empty_evidence"] = None
     assert run(data)[0].status == "invalid_output"
+
+
+def test_span_hints_are_exact_unicode_offsets_without_modifying_source_fields():
+    source = revision("🧪 Python required.")
+    result, provider = run(unknown(), source=source)
+    assert result.status == "complete" and result.prompt_version == "job-extraction-v2"
+    content = json.loads(provider.requests[0].content)
+    assert content["description"] == "🧪 Python required."
+    assert {"field": "description", "start": 2, "end": 8, "text": "Python"} in content["span_hints"]
+    for hint in content["span_hints"]:
+        assert source["payload"][hint["field"]][hint["start"] : hint["end"]] == hint["text"]
+
+
+def test_hint_count_and_input_byte_budgets_are_bounded():
+    _, provider = run(unknown(), limits=ExtractionLimits(max_span_hints=2))
+    assert len(json.loads(provider.requests[0].content)["span_hints"]) == 2
+    _, without = run(unknown(), limits=ExtractionLimits(max_span_hints=0))
+    assert json.loads(without.requests[0].content)["span_hints"] == []
+    byte_limit = len(without.requests[0].content.encode()) + 1
+    report, refused = run(unknown(), limits=ExtractionLimits(max_input_bytes=byte_limit))
+    assert report.status == "input_limit" and not refused.requests
+
+
+def test_long_whole_fields_and_words_are_not_copied_into_hints():
+    source = revision("a" * 5000 + " Python")
+    source["payload"]["title"] = "A"
+    _, provider = run(unknown(), source=source, limits=ExtractionLimits(max_span_hints=2))
+    hints = json.loads(provider.requests[0].content)["span_hints"]
+    assert hints[-1] == {"field": "description", "text": "Python", "start": 5001, "end": 5007}
 
 
 @pytest.mark.parametrize(

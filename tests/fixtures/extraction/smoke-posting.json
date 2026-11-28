@@ -1,0 +1,13 @@
+{
+  "source_provider": "fixture",
+  "source_scope": "local-smoke",
+  "source_post_id": "synthetic-python-role",
+  "company_key": "synthetic",
+  "company": "Synthetic Smoke Company",
+  "title": "Research Engineer",
+  "location": null,
+  "description": "Python required.",
+  "observed_at": "2026-11-28T00:00:00Z",
+  "source_url": "https://example.com/synthetic-smoke",
+  "raw_record": {}
+}
