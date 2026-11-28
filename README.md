@@ -4,7 +4,7 @@ A personal job monitoring and career recommendation system, designed to grow int
 
 ## Current status
 
-**Phase 1, 2.1 and 2.2a merged; compound eligibility (2.2b) implemented.** The deterministic MVP includes discovery, history, filtering, recovery and synthetic evaluation. Reviewed eligibility now supports bounded AND/OR groups and dated, user-attested education/employment facts, while preserving unknowns. Structured extraction supports fixtures and optional local Ollama; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
+**Phase 1, 2.1 and 2.2a/b merged; scoped degree-equivalence reviews (2.2c) implemented.** The deterministic MVP includes discovery, history, filtering, recovery and synthetic evaluation. Reviewed eligibility supports bounded AND/OR groups, dated education/employment facts and explicit per-qualification equivalence decisions, while preserving unknowns. These are local user attestations, not independent verification. Structured extraction supports fixtures and optional local Ollama; broader model quality remains unmeasured. No model is configured by default. The watchlist's 39 companies remain disabled until source review, and benchmark annotations still require independent human review.
 
 Start with [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and [ROADMAP.md](ROADMAP.md) for independently testable milestones and MVP acceptance criteria. [AGENTS.md](AGENTS.md) defines implementation rules for future contributors.
 
@@ -107,6 +107,8 @@ uv run --locked --offline career-intelligence jobs eligibility --config conf/set
 The scoped result is `eligible`, `potentially_eligible`, `uncertain` or `not_eligible`, with rule evidence, reasons and hashes. Missing facts remain unknown; no model or network is invoked and SQLite is unchanged. Status applies only to reviewed constraints and does not certify legal eligibility. See [the eligibility guide](docs/ELIGIBILITY.md) for a complete synthetic demonstration, supported rule types, review/completeness assertions and remaining limitations.
 
 Schema-2 reviews add `all_of` / `any_of` groups, per-branch explanations and degree completion/window conditions evaluated on the same qualification. Flat schema-1 reviews remain accepted. [The schema-2 guide](docs/ELIGIBILITY-V2.md) documents the limits and four-valued logic; a failed alternative cannot reject a passing or unresolved route.
+
+New templates and assessments use schema 3. [Scoped degree-equivalence reviews](docs/DEGREE-EQUIVALENCES.md) can explicitly accept or reject a pairing between one education entry and one accepted label in one rule. Schema-1/2 reviews remain accepted without mappings. An equivalence never supplies completion or transfers to another rule; unreviewed alternatives remain unknown.
 
 ## Preview job collection
 

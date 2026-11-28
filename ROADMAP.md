@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1 and 2.2a were merged through PRs #1-#10, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.2b adds reviewed compound requirements and dated profile facts, without new dependencies or model calls.
+Phase 1 scope and dependencies were approved on 2026-11-25. Milestones 1.1-1.6, 2.1 and 2.2a/b were merged through PRs #1-#11, with passing Windows/Ubuntu CI. The optional Ollama dependency set was approved on 2026-11-27. Increment 2.2c adds scoped degree-equivalence reviews, without new dependencies or model calls.
 
 ## Branches, reviews and CI/CD
 
@@ -197,9 +197,17 @@ Education completion and ongoing/ended employment require explicit dated attesta
 
 Local verification on 2026-11-28 passed 391 offline tests with the extra and 366 base tests, with the optional provider module intentionally skipped in the base variant. Ruff lint/format, source/wheel builds, isolated base/extra wheel checks, the original benchmark and documentation checks passed on Windows/Python 3.12.14. Tests cover all 32 two-child truth-table combinations, tree limits, unused-branch evidence, dated facts, same-degree binding, frozen legacy hashes and read-only CLI behavior. Hosted Windows/Ubuntu CI is checked on the increment PR; no live model or source was called.
 
+### 2.2c: scoped degree-equivalence reviews
+
+Implemented on `feat/phase-2-2-degree-equivalences`: review schema 3 adds explicit positive/negative decisions for an education-index/accepted-label pair within one degree rule. Each decision needs a rationale and bounded evidence references. Mappings are not shared between rules and do not imply completion, dates, hierarchy, recognized authority or transitive equivalence. Unknown alternatives remain unknown; negative decisions can establish a degree contradiction only with exhaustive education coverage and every relevant path resolved. Invalid references invalidate the full assessment, including unused alternatives.
+
+New templates and assessment/evaluator output use version 3; flat schema-1 and compound schema-2 reviews remain accepted without mappings. Per-qualification results expose the matching basis and relevant mapping indices. Existing job/revision/profile binding protects against stale or reordered education, while decision provenance enters review/assessment hashes. Profile/filter hash logic remains unchanged. No dependency, migration, model call or evidence file/URL lookup is introduced. See [docs/DEGREE-EQUIVALENCES.md](docs/DEGREE-EQUIVALENCES.md).
+
+Local verification on 2026-11-28 passed 435 offline tests with the extra and 410 base tests (one optional provider module intentionally skipped), Ruff lint/format, source/wheel builds and isolated base/extra wheel checks on Windows/Python 3.12.14. The existing 16-case synthetic benchmark and backup/restore integration tests passed. The 44 added cases cover proof requirements, incomplete and exhaustive negative reviews, accepted alternatives, same-entry completion/windows, unused-branch validation, scope isolation, legacy schemas, hash invalidation and read-only CLI behavior. Documentation links, code fences, UTF-8 and the example's exact quote span were checked. Hosted Windows/Ubuntu CI is checked on the increment PR; no live model or source was called. Annotations remain synthetic and independently unreviewed.
+
 ### Remaining 2.2 work (planned)
 
-General cross-condition bindings beyond the bound degree rule, broader equivalence handling and automatic semantic normalization still need their own reviewed contracts and tests. Attestations do not establish independently verified world truth. The engine does not establish real-world eligibility accuracy or replace verification of legal/work rights. Independent annotation review and a held-out benchmark remain pending; scoring and compensation stay in 2.3/2.4.
+General cross-condition bindings beyond the bound degree rule, inferred or broader equivalence handling (including language labels) and automatic semantic normalization still need their own reviewed contracts and tests. Attestations do not establish independently verified world truth. The engine does not establish real-world eligibility accuracy or replace verification of legal/work rights. Independent annotation review and a held-out benchmark remain pending; scoring and compensation stay in 2.3/2.4.
 
 ## Phase 3: conditional LangGraph workflow and preparation
 

@@ -181,7 +181,7 @@ def test_compound_cli_accepts_experience_alternative_to_uncompleted_degree_witho
     args = ["jobs", "eligibility", "--config", str(settings), "--job-id", job["id"]]
     assert main([*args, "--template"]) == 0
     document = json.loads(capsys.readouterr().out)
-    assert document["schema_version"] == 2
+    assert document["schema_version"] == 3
     description = job["payload"]["description"]
 
     def quote(text):
@@ -230,7 +230,99 @@ def test_compound_cli_accepts_experience_alternative_to_uncompleted_degree_witho
     assert main([*args, "--requirements", str(path), "--as-of", "2026-11-28"]) == 0
     output = capsys.readouterr()
     result = json.loads(output.out)
-    assert result["status"] == "eligible" and result["schema_version"] == 2
+    assert result["status"] == "eligible" and result["schema_version"] == 3
     children = result["rules"][0]["conditions"]
     assert [child["outcome"] for child in children] == ["contradiction", "met"]
     assert not output.err and database.read_bytes() == before
+
+
+@pytest.mark.parametrize("invalid", [False, True])
+def test_scoped_degree_equivalence_cli_is_read_only_and_errors_are_redacted(
+    invalid, config_files, repository_root, capsys, tmp_path
+):
+    settings, docs, write = config_files
+    docs["profile"]["education"] = [
+        {
+            "institution": "Synthetic Institute",
+            "degree": "Synthetic qualification",
+            "completed": True,
+            "completion_date": "2026-05",
+            "status_as_of": "2026-11-28",
+            "evidence": ["Synthetic diploma record"],
+        }
+    ]
+    write("profile", docs["profile"])
+    assert (
+        main(
+            [
+                "collect",
+                "--config",
+                str(settings),
+                "--fixture",
+                str(repository_root / "tests/fixtures/greenhouse/eligibility_equivalence.json"),
+                "--persist",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    database = load_configuration(settings).settings.database_path
+    job = list_jobs(database)[0]
+    args = ["jobs", "eligibility", "--config", str(settings), "--job-id", job["id"]]
+    assert main([*args, "--template"]) == 0
+    document = json.loads(capsys.readouterr().out)
+    description = job["payload"]["description"]
+    document.update(
+        {
+            "reviewed_by": "synthetic-reviewer",
+            "reviewed_on": "2026-11-28",
+            "coverage": "complete",
+            "constraints": [
+                {
+                    "id": "degree",
+                    "kind": "degree",
+                    "accepted_degrees": ["MSc"],
+                    "completion": "completed",
+                    "source": {
+                        "text": description,
+                        "evidence": {"field": "description", "start": 0, "end": len(description)},
+                    },
+                    "equivalences": [
+                        {
+                            "education_index": 8 if invalid else 0,
+                            "accepted_degree": "MSc",
+                            "equivalent": True,
+                            "rationale": "PRIVATE_SYNTHETIC_REVIEW_VALUE",
+                            "evidence": ["Synthetic local comparison reference; never fetched"],
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    path = tmp_path / "equivalence-review.yml"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    before_db = database.read_bytes()
+    profile_path = settings.parent / docs["settings"]["profile_file"]
+    before_profile = profile_path.read_bytes()
+    reports = []
+    for _ in range(2):
+        assert main([*args, "--requirements", str(path), "--as-of", "2026-11-28"]) == (
+            2 if invalid else 0
+        )
+        output = capsys.readouterr()
+        if invalid:
+            assert not output.out and "PRIVATE_SYNTHETIC_REVIEW_VALUE" not in output.err
+            assert json.loads(output.err)["event"] == "configuration_error"
+        else:
+            result = json.loads(output.out)
+            assert result["status"] == "eligible" and result["schema_version"] == 3
+            assert (
+                result["rules"][0]["details"]["candidates"][0]["match_basis"]
+                == "reviewed_equivalence"
+            )
+            assert not output.err
+            reports.append(result)
+    if not invalid:
+        assert reports[0] == reports[1]
+    assert database.read_bytes() == before_db and profile_path.read_bytes() == before_profile
